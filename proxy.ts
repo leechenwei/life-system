@@ -12,7 +12,9 @@ export function proxy(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// Protect everything except the login page, Next internals, and static assets.
+// Protect every app page. Excludes: the login page, Next internals (_next),
+// and any path with a file extension (manifest.webmanifest, icon-*.png, favicon.ico …)
+// so PWA assets stay publicly fetchable.
 export const config = {
-  matcher: ["/((?!login|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!login|_next|.*\\.).*)"],
 };
