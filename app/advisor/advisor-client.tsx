@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { adviseAction, type AdviceState } from "./actions";
+import MiniMarkdown from "./mini-markdown";
 
 const PROMPTS = [
   "What should I do next with my money?",
@@ -48,8 +49,8 @@ export default function Advisor() {
       </form>
 
       {state.advice && (
-        <div className="whitespace-pre-wrap rounded-xl border border-neutral-200 bg-white p-4 text-sm leading-relaxed">
-          {state.advice}
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 text-sm leading-relaxed">
+          <MiniMarkdown text={state.advice} />
         </div>
       )}
     </div>
