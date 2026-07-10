@@ -1,11 +1,13 @@
 import { computePlan, getSettings, money } from "@/lib/data";
 import { saveSettings } from "../actions";
+import { hasPasskeys } from "../auth-actions";
 import SubmitButton from "../submit-button";
+import EnableFaceId from "./enable-faceid";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlanPage() {
-  const [plan, settings] = await Promise.all([computePlan(), getSettings()]);
+  const [plan, settings, registered] = await Promise.all([computePlan(), getSettings(), hasPasskeys()]);
   const pct = plan.target > 0
     ? Math.min(100, Math.round((plan.emergencyFund / plan.target) * 100)) : 0;
 
@@ -56,6 +58,8 @@ export default async function PlanPage() {
         </label>
         <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">Save</SubmitButton>
       </form>
+
+      <EnableFaceId registered={registered} />
     </main>
   );
 }

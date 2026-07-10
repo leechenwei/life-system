@@ -81,6 +81,16 @@ create table if not exists settings (
 );
 insert into settings (id) values (1) on conflict (id) do nothing;
 
+-- Face ID / passkey credentials (WebAuthn), one row per registered device.
+create table if not exists passkeys (
+  id text primary key,              -- credential id (base64url)
+  public_key text not null,         -- COSE public key (base64url)
+  counter bigint not null default 0,
+  transports text,
+  created_at timestamptz default now()
+);
+alter table passkeys enable row level security;
+
 -- Indexes matching the app's query patterns (keep reads fast as history grows).
 create index if not exists idx_transactions_occurred_on on transactions (occurred_on);
 create index if not exists idx_transactions_account     on transactions (account_id);

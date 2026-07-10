@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// ponytail: single shared password in an httpOnly+secure cookie. Fine for one user.
-// Upgrade path: swap for Supabase Auth if you ever add your girlfriend / multi-user.
+const SESSION_SECONDS = 15 * 60;
+
+// Privacy lock: session cookie lives 15 minutes, refreshed on every request
+// while you're using the app. Walk away >15 min and it locks itself; unlock
+// with Face ID (passkey) or password. Single shared secret is fine for one user.
 export function proxy(req: NextRequest) {
   const cookie = req.cookies.get("ls_auth")?.value;
   if (cookie && cookie === process.env.APP_PASSWORD) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.cookies.set("ls_auth", cookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_SECONDS,
+    });
+    return res;
   }
   const url = req.nextUrl.clone();
   url.pathname = "/login";
