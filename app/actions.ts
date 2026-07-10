@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/supabase";
 import { signedAmount } from "@/lib/money";
+import { saveAttachment, removeAttachment } from "@/lib/files";
+import { scanReceiptImage, type ReceiptGuess } from "@/lib/receipt";
 
 function num(v: FormDataEntryValue | null): number {
   return Number(v ?? 0) || 0;
@@ -20,14 +22,25 @@ export async function addTransaction(form: FormData) {
   const account_id = str(form.get("account_id")) || null;
 
   const supabase = db();
-  await supabase.from("transactions").insert({
+  const { data: tx } = await supabase.from("transactions").insert({
     amount,
     account_id,
     category: str(form.get("category")) || null,
     note: str(form.get("note")) || null,
     life_area: str(form.get("life_area")) || "money",
     occurred_on: str(form.get("occurred_on")) || new Date().toISOString().slice(0, 10),
-  });
+  }).select("id").single();
+
+  // If a receipt photo came along, store it linked to this transaction.
+  const receipt = form.get("receipt");
+  if (tx && receipt instanceof File && receipt.size > 0) {
+    await saveAttachment(receipt, {
+      life_area: str(form.get("life_area")) || "money",
+      note: str(form.get("note")) || "receipt",
+      linked_table: "transactions",
+      linked_id: tx.id,
+    });
+  }
 
   // ponytail: two-step balance update (read+write), not atomic. Fine for one user;
   // move to a Postgres function/trigger if concurrent writes ever matter.
@@ -103,4 +116,30 @@ export async function saveSettings(form: FormData) {
     default_monthly_spend: num(form.get("default_monthly_spend")),
   }).eq("id", 1);
   revalidatePath("/plan");
+}
+
+// Receipt photo -> {amount, merchant, date, category} via Gemini vision.
+export async function scanReceipt(form: FormData): Promise<ReceiptGuess | { error: string }> {
+  const file = form.get("receipt");
+  if (!(file instanceof File) || file.size === 0) return { error: "No image received." };
+  if (file.size > 10 * 1024 * 1024) return { error: "Image too large (max 10MB)." };
+  return scanReceiptImage(await file.arrayBuffer(), file.type || "image/jpeg");
+}
+
+export async function uploadFile(form: FormData) {
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return;
+  if (file.size > 10 * 1024 * 1024) return;
+  await saveAttachment(file, {
+    life_area: str(form.get("life_area")) || "general",
+    note: str(form.get("note")) || null,
+  });
+  revalidatePath("/files");
+}
+
+export async function deleteFile(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  await removeAttachment(id);
+  revalidatePath("/files");
 }

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { signedAmount, planMath, reduceTxStats } from "./money.ts";
+import { parseReceiptReply } from "./receipt.ts";
 
 test("spend is negative, income is positive, sign of input ignored", () => {
   assert.equal(signedAmount("spend", 25), -25);
@@ -48,4 +49,22 @@ test("reduceTxStats: no rows => hasData false, zero avg", () => {
   assert.equal(r.hasData, false);
   assert.equal(r.avgSpendRaw, 0);
   assert.equal(r.month.net, 0);
+});
+
+test("parseReceiptReply: clean JSON, fenced JSON, and junk", () => {
+  const clean = parseReceiptReply('{"amount": 25.5, "merchant": "TNG", "date": "2026-07-10", "category": "Transport"}');
+  assert.equal(clean.amount, 25.5);
+  assert.equal(clean.merchant, "TNG");
+  assert.equal(clean.date, "2026-07-10");
+
+  const fenced = parseReceiptReply('Here you go:\n```json\n{"amount": 12, "merchant": "KFC", "date": null, "category": "Food"}\n```');
+  assert.equal(fenced.amount, 12);
+  assert.equal(fenced.category, "Food");
+
+  const junk = parseReceiptReply("sorry, I cannot read this image");
+  assert.equal(junk.amount, null);
+
+  const badDate = parseReceiptReply('{"amount": 5, "merchant": "X", "date": "10/07/2026", "category": "Other"}');
+  assert.equal(badDate.date, null); // non-ISO date rejected
+  assert.equal(badDate.amount, 5);
 });
