@@ -79,6 +79,21 @@ export const computePlan = cache(async () => {
   return { emergencyFund, target, surplus, toGo, safe, avgSpend, bufferMonths: settings.buffer_months };
 });
 
+export type RecentTx = {
+  id: string; amount: number; category: string | null; note: string | null;
+  occurred_on: string; accounts: { name: string } | null;
+};
+
+export const getRecentTransactions = cache(async (limit = 10): Promise<RecentTx[]> => {
+  const { data } = await db()
+    .from("transactions")
+    .select("id, amount, category, note, occurred_on, accounts(name)")
+    .order("occurred_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as RecentTx[];
+});
+
 export function money(n: number, currency = "MYR") {
   return new Intl.NumberFormat("en-MY", { style: "currency", currency }).format(n);
 }

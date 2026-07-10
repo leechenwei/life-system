@@ -1,15 +1,17 @@
 import Link from "next/link";
 import {
-  getAccounts, getGoals, getTxStats, getUpcomingReminders, computePlan, money,
+  getAccounts, getGoals, getTxStats, getUpcomingReminders, getRecentTransactions,
+  computePlan, money,
 } from "@/lib/data";
-import { completeReminder } from "./actions";
+import { completeReminder, deleteTransaction } from "./actions";
 import SubmitButton from "./submit-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-  const [accounts, stats, goals, reminders, plan] = await Promise.all([
-    getAccounts(), getTxStats(), getGoals(), getUpcomingReminders(), computePlan(),
+  const [accounts, stats, goals, reminders, recent, plan] = await Promise.all([
+    getAccounts(), getTxStats(), getGoals(), getUpcomingReminders(),
+    getRecentTransactions(), computePlan(),
   ]);
   const month = stats.month;
   const netWorth = accounts.reduce((s, a) => s + Number(a.balance), 0);
@@ -79,6 +81,40 @@ export default async function Dashboard() {
               </form>
             </div>
           ))}
+        </section>
+      )}
+
+      {recent.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-neutral-500">Recent</h2>
+          {recent.map((t) => {
+            const amt = Number(t.amount);
+            return (
+              <div key={t.id} className="flex items-center justify-between rounded-xl border bg-white p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {t.note || t.category || (amt < 0 ? "Spend" : "Income")}
+                  </p>
+                  <p className="text-xs text-neutral-500">
+                    {t.occurred_on}
+                    {t.category ? ` · ${t.category}` : ""}
+                    {t.accounts?.name ? ` · ${t.accounts.name}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-semibold ${amt < 0 ? "text-red-600" : "text-green-600"}`}>
+                    {amt < 0 ? "−" : "+"}{money(Math.abs(amt))}
+                  </span>
+                  <form action={deleteTransaction}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <SubmitButton pendingLabel="…" className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600">
+                      ✕
+                    </SubmitButton>
+                  </form>
+                </div>
+              </div>
+            );
+          })}
         </section>
       )}
 

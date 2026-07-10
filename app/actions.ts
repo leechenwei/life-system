@@ -68,13 +68,50 @@ export async function addAccount(form: FormData) {
   revalidatePath("/");
 }
 
-export async function updateBalance(form: FormData) {
+export async function updateAccount(form: FormData) {
   const id = str(form.get("id"));
-  if (!id) return;
-  await db().from("accounts").update({ balance: num(form.get("balance")) }).eq("id", id);
+  const name = str(form.get("name"));
+  if (!id || !name) return;
+  await db().from("accounts").update({
+    name,
+    type: str(form.get("type")) || "bank",
+    balance: num(form.get("balance")),
+  }).eq("id", id);
   revalidatePath("/accounts");
   revalidatePath("/");
   revalidatePath("/plan");
+}
+
+// FK on transactions is ON DELETE SET NULL, so history survives account deletion.
+export async function deleteAccount(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  await db().from("accounts").delete().eq("id", id);
+  revalidatePath("/accounts");
+  revalidatePath("/");
+  revalidatePath("/plan");
+}
+
+// Delete a transaction and reverse its effect on the account balance.
+export async function deleteTransaction(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  const supabase = db();
+  const { data: tx } = await supabase.from("transactions")
+    .select("amount, account_id").eq("id", id).single();
+  if (!tx) return;
+  await supabase.from("transactions").delete().eq("id", id);
+  if (tx.account_id) {
+    const { data: acc } = await supabase.from("accounts")
+      .select("balance").eq("id", tx.account_id).single();
+    if (acc) {
+      await supabase.from("accounts")
+        .update({ balance: Number(acc.balance) - Number(tx.amount) })
+        .eq("id", tx.account_id);
+    }
+  }
+  revalidatePath("/");
+  revalidatePath("/accounts");
 }
 
 export async function addGoal(form: FormData) {

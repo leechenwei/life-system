@@ -1,5 +1,5 @@
 import { getAccounts, getInvestments, money } from "@/lib/data";
-import { addAccount, updateBalance } from "../actions";
+import { addAccount, updateAccount, deleteAccount } from "../actions";
 import SubmitButton from "../submit-button";
 
 export const dynamic = "force-dynamic";
@@ -14,17 +14,35 @@ export default async function AccountsPage() {
       <section className="flex flex-col gap-2">
         <h1 className="pt-2 text-xl font-semibold">Accounts</h1>
         {accounts.map((a) => (
-          <form key={a.id} action={updateBalance}
-            className="flex items-center gap-2 rounded-xl border bg-white p-3">
-            <input type="hidden" name="id" value={a.id} />
-            <div className="flex-1">
-              <p className="text-sm font-medium">{a.name}</p>
-              <p className="text-xs text-neutral-500">{a.type}</p>
+          <details key={a.id} className="rounded-xl border bg-white">
+            <summary className="flex cursor-pointer items-center justify-between p-3">
+              <span>
+                <span className="text-sm font-medium">{a.name}</span>
+                <span className="ml-2 text-xs text-neutral-500">{a.type}</span>
+              </span>
+              <span className="text-sm font-semibold">{money(Number(a.balance))}</span>
+            </summary>
+            <div className="border-t p-3">
+              <form action={updateAccount} className="flex flex-col gap-2">
+                <input type="hidden" name="id" value={a.id} />
+                <input name="name" defaultValue={a.name} required className="rounded-lg border p-2 text-sm" />
+                <div className="grid grid-cols-2 gap-2">
+                  <select name="type" defaultValue={a.type} className="rounded-lg border p-2 text-sm">
+                    {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input name="balance" type="number" step="0.01" defaultValue={Number(a.balance)}
+                    className="rounded-lg border p-2 text-right text-sm" />
+                </div>
+                <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">Save changes</SubmitButton>
+              </form>
+              <form action={deleteAccount} className="mt-2">
+                <input type="hidden" name="id" value={a.id} />
+                <SubmitButton pendingLabel="Deleting…" className="w-full rounded-lg border border-red-200 p-2 text-sm text-red-600">
+                  Delete account (history is kept)
+                </SubmitButton>
+              </form>
             </div>
-            <input name="balance" type="number" step="0.01" defaultValue={Number(a.balance)}
-              className="w-28 rounded-lg border p-2 text-right" />
-            <SubmitButton pendingLabel="…" className="rounded-lg border px-3 py-2 text-xs">Save</SubmitButton>
-          </form>
+          </details>
         ))}
 
         <details className="rounded-xl border border-dashed bg-white p-3">

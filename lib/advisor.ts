@@ -1,4 +1,5 @@
 import { getAccounts, getGoals, getInvestments, getTxStats, computePlan, money } from "./data";
+import { geminiGenerate } from "./gemini";
 
 export type Snapshot = {
   netWorth: number;
@@ -51,24 +52,8 @@ export function buildPrompt(s: Snapshot, question: string): string {
   return lines.join("\n");
 }
 
-// One fetch to Gemini's free-tier REST endpoint. Server-only (uses GEMINI_API_KEY).
+// Shared Gemini helper (model fallback lives in lib/gemini.ts).
 export async function askGemini(prompt: string): Promise<string> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    return "⚠️ No GEMINI_API_KEY set yet. Add a free key from aistudio.google.com to .env.local (and Vercel) to enable AI advice.";
-  }
-  const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + key;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    return `AI request failed (${res.status}). Check your GEMINI_API_KEY or free-tier quota.`;
-  }
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  return text?.trim() || "No advice returned — try rephrasing your question.";
+  const r = await geminiGenerate([{ text: prompt }]);
+  return "error" in r ? `⚠️ ${r.error}` : r.text;
 }

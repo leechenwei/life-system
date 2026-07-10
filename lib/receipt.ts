@@ -1,4 +1,5 @@
 // Receipt "OCR" via Gemini vision — one multimodal call, no OCR library.
+import { geminiGenerate } from "./gemini.ts";
 
 export type ReceiptGuess = {
   amount: number | null;
@@ -32,26 +33,10 @@ export function parseReceiptReply(text: string): ReceiptGuess {
 }
 
 export async function scanReceiptImage(bytes: ArrayBuffer, mimeType: string): Promise<ReceiptGuess | { error: string }> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return { error: "No GEMINI_API_KEY set — add a free key from aistudio.google.com to enable receipt scanning." };
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + key,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: PROMPT },
-            { inline_data: { mime_type: mimeType, data: Buffer.from(bytes).toString("base64") } },
-          ],
-        }],
-      }),
-      cache: "no-store",
-    },
-  );
-  if (!res.ok) return { error: `Scan failed (${res.status}) — check GEMINI_API_KEY / quota.` };
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  return parseReceiptReply(text);
+  const r = await geminiGenerate([
+    { text: PROMPT },
+    { inline_data: { mime_type: mimeType, data: Buffer.from(bytes).toString("base64") } },
+  ]);
+  if ("error" in r) return { error: r.error };
+  return parseReceiptReply(r.text);
 }
