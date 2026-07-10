@@ -81,6 +81,11 @@ create table if not exists settings (
 );
 insert into settings (id) values (1) on conflict (id) do nothing;
 
+-- Indexes matching the app's query patterns (keep reads fast as history grows).
+create index if not exists idx_transactions_occurred_on on transactions (occurred_on);
+create index if not exists idx_transactions_account     on transactions (account_id);
+create index if not exists idx_reminders_due            on reminders (due_date) where done = false;
+
 -- Defense-in-depth: lock every table to server-side (service_role) access only.
 alter table accounts     enable row level security;
 alter table transactions enable row level security;

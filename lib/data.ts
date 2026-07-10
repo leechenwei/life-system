@@ -1,5 +1,6 @@
+import { cache } from "react";
 import { db } from "./supabase";
-import { planMath } from "./money";
+import { planMath, reduceTxStats } from "./money";
 
 export type Account = {
   id: string; name: string; type: string; balance: number; currency: string;
@@ -16,22 +17,24 @@ export type Investment = {
   id: string; name: string; invested_amount: number; current_value: number;
 };
 
-export async function getAccounts(): Promise<Account[]> {
+// cache() dedupes identical calls within a single server render, so a page and
+// computePlan sharing getAccounts() = ONE query, not two.
+export const getAccounts = cache(async (): Promise<Account[]> => {
   const { data } = await db().from("accounts").select("*").order("type").order("name");
   return (data ?? []) as Account[];
-}
+});
 
-export async function getInvestments(): Promise<Investment[]> {
+export const getInvestments = cache(async (): Promise<Investment[]> => {
   const { data } = await db().from("investments").select("*").order("name");
   return (data ?? []) as Investment[];
-}
+});
 
-export async function getGoals(): Promise<Goal[]> {
+export const getGoals = cache(async (): Promise<Goal[]> => {
   const { data } = await db().from("goals").select("*").order("priority", { ascending: false });
   return (data ?? []) as Goal[];
-}
+});
 
-export async function getUpcomingReminders(days = 60): Promise<Reminder[]> {
+export const getUpcomingReminders = cache(async (days = 60): Promise<Reminder[]> => {
   const until = new Date();
   until.setDate(until.getDate() + days);
   const { data } = await db()
@@ -41,54 +44,40 @@ export async function getUpcomingReminders(days = 60): Promise<Reminder[]> {
     .lte("due_date", until.toISOString().slice(0, 10))
     .order("due_date");
   return (data ?? []) as Reminder[];
-}
+});
 
-// This calendar month's income / spend / net (from signed transaction amounts).
-export async function getMonthTotals() {
+export const getSettings = cache(async () => {
+  const { data } = await db().from("settings").select("*").eq("id", 1).single();
+  return data as { buffer_months: number; default_monthly_spend: number };
+});
+
+// ONE transaction query (last 90 days) feeds both this-month totals and avg spend.
+// Selects only the two columns needed, and is date-bounded so it stays cheap as
+// history grows. cache() means the dashboard + computePlan share this single query.
+export const getTxStats = cache(async () => {
   const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const { data } = await db().from("transactions").select("amount").gte("occurred_on", first);
-  let spend = 0, income = 0;
-  for (const t of data ?? []) {
-    const a = Number(t.amount);
-    if (a < 0) spend += -a; else income += a;
-  }
-  return { spend, income, net: income - spend };
-}
-
-// Average monthly spend from the last ~90 days of real data; fall back to settings.
-export async function getAvgMonthlySpend(fallback: number): Promise<number> {
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
   const since = new Date();
   since.setDate(since.getDate() - 90);
   const { data } = await db()
     .from("transactions")
-    .select("amount")
-    .lt("amount", 0)
+    .select("amount, occurred_on")
     .gte("occurred_on", since.toISOString().slice(0, 10));
-  const rows = data ?? [];
-  if (rows.length === 0) return fallback;
-  const totalSpend = rows.reduce((s, t) => s + -Number(t.amount), 0);
-  return totalSpend / 3; // 90 days ≈ 3 months
-}
+  return reduceTxStats(data ?? [], firstOfMonth);
+});
 
-export async function getSettings() {
-  const { data } = await db().from("settings").select("*").eq("id", 1).single();
-  return data as { buffer_months: number; default_monthly_spend: number };
-}
-
-// The Plan brain — your one honest rule, computed.
-export async function computePlan() {
-  const [accounts, settings] = await Promise.all([getAccounts(), getSettings()]);
-  const avgSpend = await getAvgMonthlySpend(settings.default_monthly_spend);
+// The Plan brain — one honest rule, all inputs fetched in parallel (each cached).
+export const computePlan = cache(async () => {
+  const [accounts, settings, stats] = await Promise.all([
+    getAccounts(), getSettings(), getTxStats(),
+  ]);
+  const avgSpend = stats.hasData ? stats.avgSpendRaw : settings.default_monthly_spend;
   const emergencyFund = accounts
     .filter((a) => a.type === "savings")
     .reduce((s, a) => s + Number(a.balance), 0);
   const { target, safe, surplus, toGo } = planMath(emergencyFund, avgSpend, settings.buffer_months);
-  return {
-    emergencyFund, target, surplus, toGo, safe, avgSpend,
-    bufferMonths: settings.buffer_months,
-  };
-}
+  return { emergencyFund, target, surplus, toGo, safe, avgSpend, bufferMonths: settings.buffer_months };
+});
 
 export function money(n: number, currency = "MYR") {
   return new Intl.NumberFormat("en-MY", { style: "currency", currency }).format(n);

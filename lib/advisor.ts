@@ -1,4 +1,4 @@
-import { getAccounts, getGoals, getInvestments, getMonthTotals, computePlan, money } from "./data";
+import { getAccounts, getGoals, getInvestments, getTxStats, computePlan, money } from "./data";
 
 export type Snapshot = {
   netWorth: number;
@@ -10,12 +10,12 @@ export type Snapshot = {
 };
 
 export async function buildSnapshot(): Promise<Snapshot> {
-  const [accounts, investments, goals, month, plan] = await Promise.all([
-    getAccounts(), getInvestments(), getGoals(), getMonthTotals(), computePlan(),
+  const [accounts, investments, goals, stats, plan] = await Promise.all([
+    getAccounts(), getInvestments(), getGoals(), getTxStats(), computePlan(),
   ]);
   return {
     netWorth: accounts.reduce((s, a) => s + Number(a.balance), 0),
-    month,
+    month: stats.month,
     plan,
     accounts: accounts.map((a) => ({ name: a.name, type: a.type, balance: Number(a.balance) })),
     investments: investments.map((i) => ({

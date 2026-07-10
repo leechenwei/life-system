@@ -1,15 +1,16 @@
 import Link from "next/link";
 import {
-  getAccounts, getGoals, getMonthTotals, getUpcomingReminders, computePlan, money,
+  getAccounts, getGoals, getTxStats, getUpcomingReminders, computePlan, money,
 } from "@/lib/data";
 import { completeReminder } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-  const [accounts, month, goals, reminders, plan] = await Promise.all([
-    getAccounts(), getMonthTotals(), getGoals(), getUpcomingReminders(), computePlan(),
+  const [accounts, stats, goals, reminders, plan] = await Promise.all([
+    getAccounts(), getTxStats(), getGoals(), getUpcomingReminders(), computePlan(),
   ]);
+  const month = stats.month;
   const netWorth = accounts.reduce((s, a) => s + Number(a.balance), 0);
 
   return (
