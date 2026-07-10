@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { scanReceipt } from "../actions";
 import SubmitButton from "../submit-button";
+import { compressImage, swapInputFile } from "../compress";
 import type { Account } from "@/lib/data";
 
 const CATEGORIES = ["Food", "Transport", "Groceries", "Bills", "Shopping", "Health", "Fun", "Other"];
@@ -26,8 +27,13 @@ export default function AddForm({
     if (!file) return;
     setScanning(true);
     setScanMsg(null);
+    // Compress first: camera shots are 3-8MB (over the 4MB action limit) and
+    // HEIC becomes JPEG. The compressed file replaces the input's file so the
+    // form submit stores the small version too.
+    const small = await compressImage(file);
+    if (fileRef.current) swapInputFile(fileRef.current, small);
     const fd = new FormData();
-    fd.set("receipt", file);
+    fd.set("receipt", small);
     const r = await scanReceipt(fd);
     setScanning(false);
     if ("error" in r) { setScanMsg(r.error); return; }

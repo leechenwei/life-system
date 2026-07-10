@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAttachments } from "@/lib/files";
 import { uploadFile, deleteFile } from "../actions";
 import SubmitButton from "../submit-button";
+import UploadForm from "./upload-form";
 
 export const dynamic = "force-dynamic";
 
@@ -22,19 +23,8 @@ export default async function FilesPage({
         Roadtax, insurance, registration cards, policies — upload once, find back anytime.
       </p>
 
-      {/* Upload */}
-      <form action={uploadFile} className="flex flex-col gap-2 rounded-xl border border-dashed border-neutral-400 bg-white p-3">
-        <input type="file" name="file" required className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-black file:px-3 file:py-2 file:text-white" />
-        <div className="grid grid-cols-2 gap-2">
-          <select name="life_area" className="rounded-lg border p-2 text-sm" defaultValue={area || "car"}>
-            {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <input name="note" placeholder="e.g. Roadtax 2026" className="rounded-lg border p-2 text-sm" />
-        </div>
-        <SubmitButton pendingLabel="Uploading…" className="rounded-lg bg-black p-2 text-sm text-white">
-          Upload
-        </SubmitButton>
-      </form>
+      {/* Upload (client form: compresses photos, size-guards PDFs) */}
+      <UploadForm action={uploadFile} defaultArea={area} />
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-2">
