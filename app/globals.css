@@ -8,3 +8,14 @@ html {
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
+
+/* Native-app feel: no grey tap flash on iOS, subtle press feedback everywhere. */
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+a, button {
+  transition: opacity 150ms ease, transform 150ms ease, background-color 150ms ease;
+}
+a:active {
+  opacity: 0.6;
+}

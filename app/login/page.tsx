@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import SubmitButton from "../submit-button";
 
 async function login(formData: FormData) {
   "use server";
@@ -35,7 +36,7 @@ export default async function LoginPage({
           className="rounded-lg border p-3"
         />
         {e && <p className="text-sm text-red-600">Wrong password.</p>}
-        <button className="rounded-lg bg-black p-3 font-medium text-white">Enter</button>
+        <SubmitButton pendingLabel="Checking…" className="rounded-lg bg-black p-3 font-medium text-white">Enter</SubmitButton>
       </form>
     </main>
   );

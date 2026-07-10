@@ -1,5 +1,6 @@
 import { getAccounts, getInvestments, money } from "@/lib/data";
 import { addAccount, updateBalance } from "../actions";
+import SubmitButton from "../submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function AccountsPage() {
             </div>
             <input name="balance" type="number" step="0.01" defaultValue={Number(a.balance)}
               className="w-28 rounded-lg border p-2 text-right" />
-            <button className="rounded-lg border px-3 py-2 text-xs">Save</button>
+            <SubmitButton pendingLabel="…" className="rounded-lg border px-3 py-2 text-xs">Save</SubmitButton>
           </form>
         ))}
 
@@ -36,7 +37,7 @@ export default async function AccountsPage() {
               </select>
               <input name="balance" type="number" step="0.01" placeholder="Balance" className="rounded-lg border p-2" />
             </div>
-            <button className="rounded-lg bg-black p-2 text-sm text-white">Add account</button>
+            <SubmitButton pendingLabel="Adding…" className="rounded-lg bg-black p-2 text-sm text-white">Add account</SubmitButton>
           </form>
         </details>
         <p className="text-xs text-neutral-500">

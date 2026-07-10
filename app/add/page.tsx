@@ -1,6 +1,7 @@
 import { getAccounts } from "@/lib/data";
 import { addTransaction } from "../actions";
 import { redirect } from "next/navigation";
+import SubmitButton from "../submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export default async function AddPage() {
           </select>
         </div>
 
-        <button className="rounded-xl bg-black p-4 text-lg font-medium text-white">Save</button>
+        <SubmitButton className="rounded-xl bg-black p-4 text-lg font-medium text-white">Save</SubmitButton>
       </form>
     </main>
   );

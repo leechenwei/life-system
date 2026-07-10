@@ -1,5 +1,6 @@
 import { computePlan, getSettings, money } from "@/lib/data";
 import { saveSettings } from "../actions";
+import SubmitButton from "../submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function PlanPage() {
             defaultValue={Number(settings.default_monthly_spend)}
             className="mt-1 w-full rounded-lg border p-2" />
         </label>
-        <button className="rounded-lg bg-black p-2 text-sm text-white">Save</button>
+        <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">Save</SubmitButton>
       </form>
     </main>
   );

@@ -3,6 +3,7 @@ import {
   getAccounts, getGoals, getTxStats, getUpcomingReminders, computePlan, money,
 } from "@/lib/data";
 import { completeReminder } from "./actions";
+import SubmitButton from "./submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default async function Dashboard() {
               </div>
               <form action={completeReminder}>
                 <input type="hidden" name="id" value={r.id} />
-                <button className="rounded-lg border px-3 py-1 text-xs">Done</button>
+                <SubmitButton pendingLabel="…" className="rounded-lg border px-3 py-1 text-xs">Done</SubmitButton>
               </form>
             </div>
           ))}
