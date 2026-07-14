@@ -19,9 +19,11 @@ export default function AddForm({
   const [note, setNote] = useState("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState("");
+  const [kind, setKind] = useState<"spend" | "income" | "transfer">("spend");
   const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const isTransfer = kind === "transfer";
 
   async function onReceiptPicked(file: File | undefined) {
     if (!file) return;
@@ -52,7 +54,7 @@ export default function AddForm({
         {scanning ? (
           <><span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" /> Reading receipt…</>
         ) : (
-          <>📷 Scan receipt / payment screenshot</>
+          <>📎 Attach receipt / proof (auto-reads the details)</>
         )}
         <input
           ref={fileRef}
@@ -71,30 +73,49 @@ export default function AddForm({
         className="rounded-xl border p-4 text-2xl"
       />
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex cursor-pointer items-center justify-center rounded-xl border p-3 has-checked:border-red-400 has-checked:bg-red-50">
-          <input type="radio" name="kind" value="spend" defaultChecked className="mr-2" /> Spend
+      <div className="grid grid-cols-3 gap-2">
+        <label className="flex cursor-pointer items-center justify-center rounded-xl border p-3 text-sm has-checked:border-red-400 has-checked:bg-red-50">
+          <input type="radio" name="kind" value="spend" checked={kind === "spend"}
+            onChange={() => setKind("spend")} className="mr-1.5" /> Spend
         </label>
-        <label className="flex cursor-pointer items-center justify-center rounded-xl border p-3 has-checked:border-green-400 has-checked:bg-green-50">
-          <input type="radio" name="kind" value="income" className="mr-2" /> Income
+        <label className="flex cursor-pointer items-center justify-center rounded-xl border p-3 text-sm has-checked:border-green-400 has-checked:bg-green-50">
+          <input type="radio" name="kind" value="income" checked={kind === "income"}
+            onChange={() => setKind("income")} className="mr-1.5" /> Income
+        </label>
+        <label className="flex cursor-pointer items-center justify-center rounded-xl border p-3 text-sm has-checked:border-blue-400 has-checked:bg-blue-50">
+          <input type="radio" name="kind" value="transfer" checked={isTransfer}
+            onChange={() => setKind("transfer")} className="mr-1.5" /> Transfer
         </label>
       </div>
 
-      <select name="account_id" className="rounded-xl border p-3" defaultValue="">
-        <option value="">— account (optional) —</option>
+      <select name="account_id" required={isTransfer} className="rounded-xl border p-3" defaultValue="">
+        <option value="">{isTransfer ? "— from account —" : "— account (optional) —"}</option>
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
         ))}
       </select>
 
-      <input
-        name="category" list="cats" placeholder="Category"
-        value={category} onChange={(e) => setCategory(e.target.value)}
-        className="rounded-xl border p-3"
-      />
-      <datalist id="cats">
-        {CATEGORIES.map((c) => <option key={c} value={c} />)}
-      </datalist>
+      {isTransfer && (
+        <select name="account_to" required className="rounded-xl border p-3" defaultValue="">
+          <option value="">— to account (e.g. TnG eWallet) —</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
+          ))}
+        </select>
+      )}
+
+      {!isTransfer && (
+        <>
+          <input
+            name="category" list="cats" placeholder="Category"
+            value={category} onChange={(e) => setCategory(e.target.value)}
+            className="rounded-xl border p-3"
+          />
+          <datalist id="cats">
+            {CATEGORIES.map((c) => <option key={c} value={c} />)}
+          </datalist>
+        </>
+      )}
 
       <input
         name="note" placeholder="Note (optional)"

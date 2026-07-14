@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const items = [
   { href: "/", label: "Home", icon: "⌂" },
   { href: "/add", label: "Add", icon: "＋" },
+  { href: "/stats", label: "Stats", icon: "▥" },
   { href: "/accounts", label: "Accounts", icon: "▤" },
   { href: "/plan", label: "Plan", icon: "◎" },
   { href: "/files", label: "Files", icon: "▣" },
@@ -22,7 +23,7 @@ export default function Nav() {
           <Link
             key={n.href}
             href={n.href}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
               active ? "text-black" : "text-neutral-400"
             }`}
           >

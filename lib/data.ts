@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { db } from "./supabase";
-import { planMath, reduceTxStats } from "./money";
+import { planMath, reduceTxStats, aggregateAnalytics } from "./money";
 
 export type Account = {
   id: string; name: string; type: string; balance: number; currency: string;
@@ -61,9 +61,41 @@ export const getTxStats = cache(async () => {
   since.setDate(since.getDate() - 90);
   const { data } = await db()
     .from("transactions")
-    .select("amount, occurred_on")
+    .select("amount, occurred_on, category")
     .gte("occurred_on", since.toISOString().slice(0, 10));
   return reduceTxStats(data ?? [], firstOfMonth);
+});
+
+// 6 months of rows for the stats page charts.
+export const getAnalytics = cache(async () => {
+  const now = new Date();
+  const since = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().slice(0, 10);
+  const { data } = await db()
+    .from("transactions")
+    .select("amount, occurred_on, category")
+    .gte("occurred_on", since);
+  return aggregateAnalytics(data ?? [], now.toISOString().slice(0, 10));
+});
+
+// Signed receipt URLs for a set of transaction ids (Recent list "view receipt").
+export const getTxAttachments = cache(async (txIds: string[]): Promise<Record<string, string>> => {
+  if (txIds.length === 0) return {};
+  const supabase = db();
+  const { data } = await supabase
+    .from("attachments")
+    .select("linked_id, storage_path")
+    .eq("linked_table", "transactions")
+    .in("linked_id", txIds);
+  const rows = data ?? [];
+  if (rows.length === 0) return {};
+  const { data: signed } = await supabase.storage
+    .from("attachments")
+    .createSignedUrls(rows.map((r) => r.storage_path), 3600);
+  const map: Record<string, string> = {};
+  rows.forEach((r, i) => {
+    if (signed?.[i]?.signedUrl && r.linked_id) map[r.linked_id] = signed[i].signedUrl;
+  });
+  return map;
 });
 
 // The Plan brain — one honest rule, all inputs fetched in parallel (each cached).

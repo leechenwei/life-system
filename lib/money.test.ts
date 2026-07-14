@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { signedAmount, planMath, reduceTxStats } from "./money.ts";
+import { signedAmount, planMath, reduceTxStats, aggregateAnalytics } from "./money.ts";
 import { parseReceiptReply } from "./receipt.ts";
 
 test("spend is negative, income is positive, sign of input ignored", () => {
@@ -49,6 +49,36 @@ test("reduceTxStats: no rows => hasData false, zero avg", () => {
   assert.equal(r.hasData, false);
   assert.equal(r.avgSpendRaw, 0);
   assert.equal(r.month.net, 0);
+});
+
+test("transfers are excluded from spend/income stats", () => {
+  const rows = [
+    { amount: -100, occurred_on: "2026-07-05", category: "Transfer" }, // bank -> TnG
+    { amount: 100, occurred_on: "2026-07-05", category: "Transfer" },
+    { amount: -30, occurred_on: "2026-07-06", category: "Food" },
+  ];
+  const r = reduceTxStats(rows, "2026-07-01");
+  assert.equal(r.month.spend, 30);   // transfer's -100 NOT counted
+  assert.equal(r.month.income, 0);   // transfer's +100 NOT counted
+});
+
+test("aggregateAnalytics: month buckets + category totals, transfers skipped", () => {
+  const rows = [
+    { amount: -50, occurred_on: "2026-07-02", category: "Food" },
+    { amount: -20, occurred_on: "2026-07-03", category: "Food" },
+    { amount: -10, occurred_on: "2026-07-04", category: "Transport" },
+    { amount: 3000, occurred_on: "2026-07-01", category: null },
+    { amount: -99, occurred_on: "2026-06-15", category: "Bills" },   // last month
+    { amount: -500, occurred_on: "2026-07-05", category: "Transfer" }, // skipped
+  ];
+  const a = aggregateAnalytics(rows, "2026-07-14", 3);
+  assert.equal(a.months.length, 3);
+  assert.deepEqual(a.months.map((m) => m.ym), ["2026-05", "2026-06", "2026-07"]);
+  assert.equal(a.months[2].spend, 80);
+  assert.equal(a.months[2].income, 3000);
+  assert.equal(a.months[1].spend, 99);
+  assert.deepEqual(a.categories[0], { category: "Food", total: 70 }); // sorted desc, this month only
+  assert.equal(a.categories.find((c) => c.category === "Transfer"), undefined);
 });
 
 test("parseReceiptReply: clean JSON, fenced JSON, and junk", () => {

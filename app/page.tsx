@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   getAccounts, getGoals, getTxStats, getUpcomingReminders, getRecentTransactions,
-  computePlan, money,
+  getTxAttachments, computePlan, money,
 } from "@/lib/data";
 import { completeReminder, deleteTransaction } from "./actions";
 import SubmitButton from "./submit-button";
@@ -13,6 +13,7 @@ export default async function Dashboard() {
     getAccounts(), getTxStats(), getGoals(), getUpcomingReminders(),
     getRecentTransactions(), computePlan(),
   ]);
+  const receipts = await getTxAttachments(recent.map((t) => t.id));
   const month = stats.month;
   const netWorth = accounts.reduce((s, a) => s + Number(a.balance), 0);
 
@@ -102,9 +103,15 @@ export default async function Dashboard() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-semibold ${amt < 0 ? "text-red-600" : "text-green-600"}`}>
+                  <span className={`text-sm font-semibold ${t.category === "Transfer" ? "text-neutral-500" : amt < 0 ? "text-red-600" : "text-green-600"}`}>
                     {amt < 0 ? "−" : "+"}{money(Math.abs(amt))}
                   </span>
+                  {receipts[t.id] && (
+                    <a href={receipts[t.id]} target="_blank" rel="noreferrer"
+                      className="rounded-lg border px-2 py-1 text-xs" title="View receipt">
+                      🧾
+                    </a>
+                  )}
                   <form action={deleteTransaction}>
                     <input type="hidden" name="id" value={t.id} />
                     <SubmitButton pendingLabel="…" className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600">

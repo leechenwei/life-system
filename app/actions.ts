@@ -13,15 +13,40 @@ function str(v: FormDataEntryValue | null): string {
   return (v ?? "").toString().trim();
 }
 
-// Add a spend or income. kind=spend stores a negative amount.
+// Adjust an account's balance by delta (read+write; fine for one user).
+async function bumpBalance(supabase: ReturnType<typeof db>, accountId: string, delta: number) {
+  const { data } = await supabase.from("accounts").select("balance").eq("id", accountId).single();
+  if (data) {
+    await supabase.from("accounts").update({ balance: Number(data.balance) + delta }).eq("id", accountId);
+  }
+}
+
+// Add a spend, income, or transfer. kind=spend stores a negative amount.
+// kind=transfer writes a -/+ pair tagged category 'Transfer' (excluded from stats).
 export async function addTransaction(form: FormData) {
   const raw = Math.abs(num(form.get("amount")));
   if (raw === 0) return;
-  const kind = str(form.get("kind")); // spend | income
-  const amount = signedAmount(kind, raw);
+  const kind = str(form.get("kind")); // spend | income | transfer
   const account_id = str(form.get("account_id")) || null;
-
   const supabase = db();
+
+  if (kind === "transfer") {
+    const to_id = str(form.get("account_to")) || null;
+    if (!account_id || !to_id || account_id === to_id) return;
+    const occurred_on = str(form.get("occurred_on")) || new Date().toISOString().slice(0, 10);
+    const note = str(form.get("note")) || "Transfer";
+    await supabase.from("transactions").insert([
+      { amount: -raw, account_id, category: "Transfer", note, life_area: "money", occurred_on },
+      { amount: raw, account_id: to_id, category: "Transfer", note, life_area: "money", occurred_on },
+    ]);
+    await bumpBalance(supabase, account_id, -raw);
+    await bumpBalance(supabase, to_id, raw);
+    revalidatePath("/");
+    revalidatePath("/accounts");
+    return;
+  }
+
+  const amount = signedAmount(kind, raw);
   const { data: tx } = await supabase.from("transactions").insert({
     amount,
     account_id,
@@ -44,14 +69,7 @@ export async function addTransaction(form: FormData) {
 
   // ponytail: two-step balance update (read+write), not atomic. Fine for one user;
   // move to a Postgres function/trigger if concurrent writes ever matter.
-  if (account_id) {
-    const { data } = await supabase.from("accounts").select("balance").eq("id", account_id).single();
-    if (data) {
-      await supabase.from("accounts")
-        .update({ balance: Number(data.balance) + amount })
-        .eq("id", account_id);
-    }
-  }
+  if (account_id) await bumpBalance(supabase, account_id, amount);
   revalidatePath("/");
   revalidatePath("/accounts");
 }
