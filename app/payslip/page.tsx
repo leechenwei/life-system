@@ -1,6 +1,6 @@
 import { db } from "@/lib/supabase";
 import { getAccounts, money } from "@/lib/data";
-import { saveCompany, saveEmployee } from "./actions";
+import { saveCompany, saveEmployee, deletePayslip, deactivateEmployee } from "./actions";
 import SubmitButton from "../submit-button";
 import GenerateForm from "./generate-form";
 
@@ -72,6 +72,12 @@ export default async function PayslipPage() {
               </label>
               <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">Save changes</SubmitButton>
             </form>
+            <form action={deactivateEmployee} className="border-t p-3 pt-2">
+              <input type="hidden" name="id" value={e.id} />
+              <SubmitButton pendingLabel="Removing…" className="w-full rounded-lg border border-red-200 p-2 text-xs text-red-600">
+                Remove employee (past payslips are kept)
+              </SubmitButton>
+            </form>
           </details>
         ))}
         <details className="rounded-xl border border-dashed bg-white p-3">
@@ -119,12 +125,20 @@ export default async function PayslipPage() {
                 Gross {money(Number(s.gross_pay))} · Net {money(Number(s.net_pay))}
               </p>
             </div>
-            {s.pdf_path && urlByPath.get(s.pdf_path) && (
-              <a href={urlByPath.get(s.pdf_path) ?? "#"} target="_blank" rel="noreferrer"
-                className="rounded-lg border px-3 py-1 text-xs">
-                PDF
-              </a>
-            )}
+            <div className="flex items-center gap-2">
+              {s.pdf_path && urlByPath.get(s.pdf_path) && (
+                <a href={urlByPath.get(s.pdf_path) ?? "#"} target="_blank" rel="noreferrer"
+                  className="rounded-lg border px-3 py-1 text-xs">
+                  PDF
+                </a>
+              )}
+              <form action={deletePayslip}>
+                <input type="hidden" name="id" value={s.id} />
+                <SubmitButton pendingLabel="…" className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600">
+                  ✕
+                </SubmitButton>
+              </form>
+            </div>
           </div>
         ))}
       </section>

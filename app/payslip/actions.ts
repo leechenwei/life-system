@@ -52,6 +52,31 @@ export async function saveEmployee(form: FormData) {
   revalidatePath("/payslip");
 }
 
+// Delete a payslip: remove its PDF from storage + any Files/receipt entries
+// pointing at it, then the row. A linked income transaction (if you logged one)
+// is left alone — delete that separately from the Home Recent list if needed.
+export async function deletePayslip(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  const supabase = db();
+  const { data: slip } = await supabase.from("payslips").select("pdf_path").eq("id", id).single();
+  if (slip?.pdf_path) {
+    await supabase.storage.from("attachments").remove([slip.pdf_path]);
+    await supabase.from("attachments").delete().eq("storage_path", slip.pdf_path);
+  }
+  await supabase.from("payslips").delete().eq("id", id);
+  revalidatePath("/payslip");
+  revalidatePath("/files");
+}
+
+// Deactivate (not hard-delete) so past payslips keep their employee reference.
+export async function deactivateEmployee(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  await db().from("employees").update({ is_active: false }).eq("id", id);
+  revalidatePath("/payslip");
+}
+
 // Generate: calc -> save row -> render PDF -> store -> optional income tx + proof link.
 export async function generatePayslip(form: FormData): Promise<{ ok: boolean; msg: string }> {
   const supabase = db();
