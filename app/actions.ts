@@ -152,8 +152,32 @@ export async function updateTransaction(form: FormData) {
   if (old.account_id) await bumpBalance(supabase, old.account_id, -Number(old.amount));
   if (newAccount) await bumpBalance(supabase, newAccount, newAmount);
 
+  // Receipt: a new file replaces the old one; the "remove receipt" box deletes it.
+  const receipt = form.get("receipt");
+  const removeReceipt = form.get("remove_receipt") === "on";
+  if (removeReceipt || (receipt instanceof File && receipt.size > 0)) {
+    await removeTxReceipt(supabase, id);
+  }
+  if (!removeReceipt && receipt instanceof File && receipt.size > 0) {
+    await saveAttachment(receipt, {
+      life_area: str(form.get("life_area")) || "money",
+      note: str(form.get("note")) || "receipt",
+      linked_table: "transactions",
+      linked_id: id,
+    });
+  }
+
   revalidatePath("/");
   revalidatePath("/accounts");
+}
+
+// Delete all attachments (storage + rows) linked to a transaction.
+async function removeTxReceipt(supabase: ReturnType<typeof db>, txId: string) {
+  const { data: rows } = await supabase.from("attachments")
+    .select("id, storage_path").eq("linked_table", "transactions").eq("linked_id", txId);
+  if (!rows?.length) return;
+  await supabase.storage.from("attachments").remove(rows.map((r) => r.storage_path));
+  await supabase.from("attachments").delete().in("id", rows.map((r) => r.id));
 }
 
 // Undo: bring a soft-deleted transaction back and re-apply its balance effect.

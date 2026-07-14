@@ -5,6 +5,7 @@ import {
 } from "@/lib/data";
 import { completeReminder, deleteTransaction, restoreTransaction, updateTransaction } from "./actions";
 import SubmitButton from "./submit-button";
+import ReceiptField from "./receipt-field";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,12 @@ export default async function Dashboard() {
                           ))}
                         </select>
                       </div>
+                      <ReceiptField hasExisting={Boolean(receipts[t.id])} />
+                      {receipts[t.id] && (
+                        <label className="flex items-center gap-2 text-xs text-red-600">
+                          <input type="checkbox" name="remove_receipt" /> Remove current receipt
+                        </label>
+                      )}
                       <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">
                         Save changes
                       </SubmitButton>
