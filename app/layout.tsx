@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Nav from "./nav";
+import PrivacyShield from "./privacy-shield";
 import { lockNow } from "./auth-actions";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full bg-neutral-50 text-neutral-900">
+        <PrivacyShield />
         <div className="mx-auto min-h-screen max-w-md bg-neutral-50 pb-24">
           <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-neutral-50/90 px-4 py-3 backdrop-blur pt-[max(0.75rem,env(safe-area-inset-top))]">
             <span className="inline-block h-6 w-6 rounded-md bg-black" />
