@@ -63,6 +63,14 @@ export default async function AccountsPage() {
         </p>
       </section>
 
+      <a href="/payslip" className="flex items-center justify-between rounded-xl border bg-white p-4">
+        <span>
+          <span className="text-sm font-medium">🧾 Payslips (SSM business)</span>
+          <span className="block text-xs text-neutral-500">Issue payslips · income proof for loans</span>
+        </span>
+        <span className="text-neutral-400">→</span>
+      </a>
+
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-neutral-500">Investments</h2>
         {investments.length === 0 && (

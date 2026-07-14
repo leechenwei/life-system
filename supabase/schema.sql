@@ -81,6 +81,59 @@ create table if not exists settings (
 );
 insert into settings (id) values (1) on conflict (id) do nothing;
 
+-- Payslip module (ported from standalone payslip-system; single-user, no auth cols).
+create table if not exists companies (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  ssm_no text not null,
+  address text not null,
+  business_type text,
+  start_date date, reg_date date, expiry_date date,
+  created_at timestamptz default now()
+);
+create table if not exists employees (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  name text not null,
+  ic_no text, epf_no text, socso_no text, income_tax_no text,
+  bank_name text, bank_account text, designation text,
+  join_date date,
+  basic_salary numeric(12,2) not null default 0,
+  is_active boolean default true,
+  age_over_60 boolean default false,
+  is_malaysian boolean default true,
+  created_at timestamptz default now()
+);
+create table if not exists payslips (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id) on delete cascade,
+  company_id uuid not null references companies(id) on delete cascade,
+  period_year int not null,
+  period_month int not null check (period_month between 1 and 12),
+  basic_salary numeric(12,2) not null,
+  allowances numeric(12,2) not null default 0,
+  overtime numeric(12,2) not null default 0,
+  bonus numeric(12,2) not null default 0,
+  gross_pay numeric(12,2) not null,
+  epf_employee numeric(12,2) not null default 0,
+  epf_employer numeric(12,2) not null default 0,
+  socso_employee numeric(12,2) not null default 0,
+  socso_employer numeric(12,2) not null default 0,
+  eis_employee numeric(12,2) not null default 0,
+  eis_employer numeric(12,2) not null default 0,
+  pcb numeric(12,2) not null default 0,
+  other_deductions numeric(12,2) not null default 0,
+  total_deductions numeric(12,2) not null,
+  net_pay numeric(12,2) not null,
+  pdf_path text,
+  notes text,
+  created_at timestamptz default now(),
+  unique (employee_id, period_year, period_month)
+);
+alter table companies enable row level security;
+alter table employees enable row level security;
+alter table payslips enable row level security;
+
 -- Face ID / passkey credentials (WebAuthn), one row per registered device.
 create table if not exists passkeys (
   id text primary key,              -- credential id (base64url)
