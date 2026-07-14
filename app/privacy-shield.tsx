@@ -4,31 +4,33 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { lockNow } from "./auth-actions";
 
-// ponytail: 60s grace — long enough for the iOS camera/photo picker (which
-// backgrounds the PWA during receipt scans), short enough for privacy.
-const GRACE_MS = 60_000;
-
 // Two jobs:
 // 1. Cover the screen the instant the app is backgrounded, so the iOS
 //    app-switcher snapshot shows the cover instead of your money.
-// 2. If backgrounded longer than the grace period, force a full re-lock
-//    (Face ID / password) on return.
+// 2. In the installed PWA (iPhone home-screen app): ANY swipe-away locks —
+//    returning always requires Face ID / password. No grace, per owner's call.
+//    In a plain browser tab (desktop), tab-switching only covers, so the app
+//    stays usable next to other tabs; the 15-min server TTL still backstops.
 export default function PrivacyShield() {
   const [covered, setCovered] = useState(false);
-  const hiddenAt = useRef<number | null>(null);
+  const wasHidden = useRef(false);
   const path = usePathname();
   const onLogin = path === "/login";
 
   useEffect(() => {
     if (onLogin) return;
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      // iOS Safari legacy flag
+      (navigator as unknown as { standalone?: boolean }).standalone === true;
+
     const onChange = () => {
       if (document.visibilityState === "hidden") {
-        hiddenAt.current = Date.now();
+        wasHidden.current = true;
         setCovered(true);
-      } else {
-        const away = hiddenAt.current ? Date.now() - hiddenAt.current : 0;
-        hiddenAt.current = null;
-        if (away > GRACE_MS) {
+      } else if (wasHidden.current) {
+        wasHidden.current = false;
+        if (standalone) {
           lockNow(); // server action: clears session cookie + redirects to /login
         } else {
           setCovered(false);
@@ -37,7 +39,7 @@ export default function PrivacyShield() {
     };
     document.addEventListener("visibilitychange", onChange);
     // pagehide fires on some iOS paths where visibilitychange doesn't
-    const onHide = () => { hiddenAt.current = Date.now(); setCovered(true); };
+    const onHide = () => { wasHidden.current = true; setCovered(true); };
     window.addEventListener("pagehide", onHide);
     return () => {
       document.removeEventListener("visibilitychange", onChange);
