@@ -1,5 +1,5 @@
-import { computePlan, getSettings, money } from "@/lib/data";
-import { saveSettings } from "../actions";
+import { computePlan, getSettings, getGoals, money } from "@/lib/data";
+import { saveSettings, addGoal, updateGoal, deleteGoal } from "../actions";
 import { hasPasskeys } from "../auth-actions";
 import SubmitButton from "../submit-button";
 import EnableFaceId from "./enable-faceid";
@@ -7,7 +7,9 @@ import EnableFaceId from "./enable-faceid";
 export const dynamic = "force-dynamic";
 
 export default async function PlanPage() {
-  const [plan, settings, registered] = await Promise.all([computePlan(), getSettings(), hasPasskeys()]);
+  const [plan, settings, registered, goals] = await Promise.all([
+    computePlan(), getSettings(), hasPasskeys(), getGoals(),
+  ]);
   const pct = plan.target > 0
     ? Math.min(100, Math.round((plan.emergencyFund / plan.target) * 100)) : 0;
 
@@ -41,6 +43,71 @@ export default async function PlanPage() {
         <p className="mt-2 text-xs text-neutral-400">
           Based on avg spend {money(plan.avgSpend)}/mo (last 90 days, or your fallback below).
         </p>
+      </section>
+
+      {/* Goals */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-neutral-500">Goals</h2>
+        {goals.map((g) => {
+          const pct = g.target_amount > 0
+            ? Math.min(100, Math.round((Number(g.saved_amount) / Number(g.target_amount)) * 100)) : 0;
+          return (
+            <details key={g.id} className="rounded-xl border bg-white">
+              <summary className="cursor-pointer p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">{g.name}</span>
+                  <span className="text-neutral-500">
+                    {money(Number(g.saved_amount))} / {money(Number(g.target_amount))}
+                    {g.target_date ? ` · by ${g.target_date}` : ""}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-neutral-100">
+                  <div className="h-2 rounded-full bg-black" style={{ width: `${pct}%` }} />
+                </div>
+              </summary>
+              <div className="border-t p-3">
+                <form action={updateGoal} className="flex flex-col gap-2">
+                  <input type="hidden" name="id" value={g.id} />
+                  <input name="name" defaultValue={g.name} required className="rounded-lg border p-2 text-sm" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs text-neutral-500">Saved so far
+                      <input name="saved_amount" type="number" step="0.01" defaultValue={Number(g.saved_amount)}
+                        className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                    </label>
+                    <label className="text-xs text-neutral-500">Target
+                      <input name="target_amount" type="number" step="0.01" defaultValue={Number(g.target_amount)}
+                        className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                    </label>
+                  </div>
+                  <label className="text-xs text-neutral-500">Target date (optional)
+                    <input name="target_date" type="date" defaultValue={g.target_date ?? ""}
+                      className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">Save goal</SubmitButton>
+                </form>
+                <form action={deleteGoal} className="mt-2">
+                  <input type="hidden" name="id" value={g.id} />
+                  <SubmitButton pendingLabel="…" className="w-full rounded-lg border border-red-200 p-2 text-xs text-red-600">
+                    Delete goal
+                  </SubmitButton>
+                </form>
+              </div>
+            </details>
+          );
+        })}
+
+        <details className="rounded-xl border border-dashed bg-white p-3" open={goals.length === 0}>
+          <summary className="cursor-pointer text-sm font-medium">＋ New goal (e.g. Japan trip 2027)</summary>
+          <form action={addGoal} className="mt-3 flex flex-col gap-2">
+            <input name="name" placeholder="Goal name" required className="rounded-lg border p-2 text-sm" />
+            <div className="grid grid-cols-2 gap-2">
+              <input name="target_amount" type="number" step="0.01" placeholder="Target RM" required className="rounded-lg border p-2 text-sm" />
+              <input name="saved_amount" type="number" step="0.01" placeholder="Saved so far (0)" className="rounded-lg border p-2 text-sm" />
+            </div>
+            <input name="target_date" type="date" className="rounded-lg border p-2 text-sm" />
+            <SubmitButton pendingLabel="Adding…" className="rounded-lg bg-black p-2 text-sm text-white">Add goal</SubmitButton>
+          </form>
+        </details>
       </section>
 
       <form action={saveSettings} className="flex flex-col gap-3 rounded-xl border bg-white p-4">

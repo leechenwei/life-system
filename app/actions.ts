@@ -180,6 +180,28 @@ export async function addGoal(form: FormData) {
     target_date: str(form.get("target_date")) || null,
   });
   revalidatePath("/");
+  revalidatePath("/plan");
+}
+
+export async function updateGoal(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  await db().from("goals").update({
+    name: str(form.get("name")) || undefined,
+    target_amount: num(form.get("target_amount")),
+    saved_amount: num(form.get("saved_amount")),
+    target_date: str(form.get("target_date")) || null,
+  }).eq("id", id);
+  revalidatePath("/");
+  revalidatePath("/plan");
+}
+
+export async function deleteGoal(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  await db().from("goals").delete().eq("id", id);
+  revalidatePath("/");
+  revalidatePath("/plan");
 }
 
 export async function addReminder(form: FormData) {
