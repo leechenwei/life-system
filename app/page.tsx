@@ -1,17 +1,17 @@
 import Link from "next/link";
 import {
   getAccounts, getGoals, getTxStats, getUpcomingReminders, getRecentTransactions,
-  getTxAttachments, computePlan, money,
+  getRecentlyDeleted, getTxAttachments, computePlan, money,
 } from "@/lib/data";
-import { completeReminder, deleteTransaction } from "./actions";
+import { completeReminder, deleteTransaction, restoreTransaction } from "./actions";
 import SubmitButton from "./submit-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-  const [accounts, stats, goals, reminders, recent, plan] = await Promise.all([
+  const [accounts, stats, goals, reminders, recent, deleted, plan] = await Promise.all([
     getAccounts(), getTxStats(), getGoals(), getUpcomingReminders(),
-    getRecentTransactions(), computePlan(),
+    getRecentTransactions(), getRecentlyDeleted(), computePlan(),
   ]);
   const receipts = await getTxAttachments(recent.map((t) => t.id));
   const month = stats.month;
@@ -119,6 +119,34 @@ export default async function Dashboard() {
                     </SubmitButton>
                   </form>
                 </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {deleted.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-neutral-500">Recently deleted</h2>
+          {deleted.map((t) => {
+            const amt = Number(t.amount);
+            return (
+              <div key={t.id} className="flex items-center justify-between rounded-xl border border-dashed bg-neutral-50 p-3 opacity-80">
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-neutral-500 line-through">
+                    {t.note || t.category || (amt < 0 ? "Spend" : "Income")}
+                  </p>
+                  <p className="text-xs text-neutral-400">
+                    {t.occurred_on} · {amt < 0 ? "−" : "+"}{money(Math.abs(amt))}
+                    {t.accounts?.name ? ` · ${t.accounts.name}` : ""}
+                  </p>
+                </div>
+                <form action={restoreTransaction}>
+                  <input type="hidden" name="id" value={t.id} />
+                  <SubmitButton pendingLabel="…" className="rounded-lg border px-3 py-1 text-xs font-medium">
+                    ↩ Restore
+                  </SubmitButton>
+                </form>
               </div>
             );
           })}

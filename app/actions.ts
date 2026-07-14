@@ -110,24 +110,30 @@ export async function deleteAccount(form: FormData) {
   revalidatePath("/plan");
 }
 
-// Delete a transaction and reverse its effect on the account balance.
+// Soft-delete a transaction (restorable) and reverse its balance effect.
 export async function deleteTransaction(form: FormData) {
   const id = str(form.get("id"));
   if (!id) return;
   const supabase = db();
   const { data: tx } = await supabase.from("transactions")
-    .select("amount, account_id").eq("id", id).single();
-  if (!tx) return;
-  await supabase.from("transactions").delete().eq("id", id);
-  if (tx.account_id) {
-    const { data: acc } = await supabase.from("accounts")
-      .select("balance").eq("id", tx.account_id).single();
-    if (acc) {
-      await supabase.from("accounts")
-        .update({ balance: Number(acc.balance) - Number(tx.amount) })
-        .eq("id", tx.account_id);
-    }
-  }
+    .select("amount, account_id, deleted_at").eq("id", id).single();
+  if (!tx || tx.deleted_at) return; // already deleted — don't double-reverse
+  await supabase.from("transactions").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if (tx.account_id) await bumpBalance(supabase, tx.account_id, -Number(tx.amount));
+  revalidatePath("/");
+  revalidatePath("/accounts");
+}
+
+// Undo: bring a soft-deleted transaction back and re-apply its balance effect.
+export async function restoreTransaction(form: FormData) {
+  const id = str(form.get("id"));
+  if (!id) return;
+  const supabase = db();
+  const { data: tx } = await supabase.from("transactions")
+    .select("amount, account_id, deleted_at").eq("id", id).single();
+  if (!tx || !tx.deleted_at) return; // not deleted — don't double-apply
+  await supabase.from("transactions").update({ deleted_at: null }).eq("id", id);
+  if (tx.account_id) await bumpBalance(supabase, tx.account_id, Number(tx.amount));
   revalidatePath("/");
   revalidatePath("/accounts");
 }

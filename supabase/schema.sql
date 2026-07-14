@@ -20,7 +20,8 @@ create table if not exists transactions (
   life_area text default 'money',
   source text not null default 'manual',    -- manual | email | import
   occurred_on date not null default current_date,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  deleted_at timestamptz              -- soft delete: set = hidden + balance reversed; restorable
 );
 
 create table if not exists investments (

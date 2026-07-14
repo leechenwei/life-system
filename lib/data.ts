@@ -62,6 +62,7 @@ export const getTxStats = cache(async () => {
   const { data } = await db()
     .from("transactions")
     .select("amount, occurred_on, category")
+    .is("deleted_at", null)
     .gte("occurred_on", since.toISOString().slice(0, 10));
   return reduceTxStats(data ?? [], firstOfMonth);
 });
@@ -73,6 +74,7 @@ export const getAnalytics = cache(async () => {
   const { data } = await db()
     .from("transactions")
     .select("amount, occurred_on, category")
+    .is("deleted_at", null)
     .gte("occurred_on", since);
   return aggregateAnalytics(data ?? [], now.toISOString().slice(0, 10));
 });
@@ -120,8 +122,22 @@ export const getRecentTransactions = cache(async (limit = 10): Promise<RecentTx[
   const { data } = await db()
     .from("transactions")
     .select("id, amount, category, note, occurred_on, accounts(name)")
+    .is("deleted_at", null)
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as RecentTx[];
+});
+
+// Soft-deleted transactions from the last 7 days — restorable from Home.
+export const getRecentlyDeleted = cache(async (limit = 5): Promise<RecentTx[]> => {
+  const since = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const { data } = await db()
+    .from("transactions")
+    .select("id, amount, category, note, occurred_on, accounts(name)")
+    .not("deleted_at", "is", null)
+    .gte("deleted_at", since)
+    .order("deleted_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as unknown as RecentTx[];
 });
