@@ -3,7 +3,7 @@ import {
   getAccounts, getGoals, getTxStats, getUpcomingReminders, getRecentTransactions,
   getRecentlyDeleted, getTxAttachments, computePlan, money,
 } from "@/lib/data";
-import { completeReminder, deleteTransaction, restoreTransaction } from "./actions";
+import { completeReminder, deleteTransaction, restoreTransaction, updateTransaction } from "./actions";
 import SubmitButton from "./submit-button";
 
 export const dynamic = "force-dynamic";
@@ -90,36 +90,72 @@ export default async function Dashboard() {
           <h2 className="text-sm font-semibold text-neutral-500">Recent</h2>
           {recent.map((t) => {
             const amt = Number(t.amount);
+            const isTransfer = t.category === "Transfer";
             return (
-              <div key={t.id} className="flex items-center justify-between rounded-xl border bg-white p-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {t.note || t.category || (amt < 0 ? "Spend" : "Income")}
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    {t.occurred_on}
-                    {t.category ? ` · ${t.category}` : ""}
-                    {t.accounts?.name ? ` · ${t.accounts.name}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-semibold ${t.category === "Transfer" ? "text-neutral-500" : amt < 0 ? "text-red-600" : "text-green-600"}`}>
-                    {amt < 0 ? "−" : "+"}{money(Math.abs(amt))}
-                  </span>
-                  {receipts[t.id] && (
-                    <a href={receipts[t.id]} target="_blank" rel="noreferrer"
-                      className="rounded-lg border px-2 py-1 text-xs" title="View receipt">
-                      🧾
-                    </a>
+              <details key={t.id} className="rounded-xl border bg-white">
+                <summary className="flex cursor-pointer items-center justify-between p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {t.note || t.category || (amt < 0 ? "Spend" : "Income")}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {t.occurred_on}
+                      {t.category ? ` · ${t.category}` : ""}
+                      {t.accounts?.name ? ` · ${t.accounts.name}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-semibold ${isTransfer ? "text-neutral-500" : amt < 0 ? "text-red-600" : "text-green-600"}`}>
+                      {amt < 0 ? "−" : "+"}{money(Math.abs(amt))}
+                    </span>
+                    {receipts[t.id] && (
+                      <a href={receipts[t.id]} target="_blank" rel="noreferrer"
+                        className="rounded-lg border px-2 py-1 text-xs" title="View receipt">
+                        🧾
+                      </a>
+                    )}
+                  </div>
+                </summary>
+                <div className="border-t p-3">
+                  {isTransfer ? (
+                    <p className="mb-2 text-xs text-neutral-500">
+                      Transfers are paired (out + in) — to change one, delete it and add again.
+                    </p>
+                  ) : (
+                    <form action={updateTransaction} className="flex flex-col gap-2">
+                      <input type="hidden" name="id" value={t.id} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input name="amount" type="number" step="0.01" inputMode="decimal"
+                          defaultValue={Math.abs(amt)} required className="rounded-lg border p-2 text-sm" />
+                        <input name="category" defaultValue={t.category ?? ""} placeholder="Category"
+                          className="rounded-lg border p-2 text-sm" />
+                      </div>
+                      <input name="note" defaultValue={t.note ?? ""} placeholder="Note"
+                        className="rounded-lg border p-2 text-sm" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input name="occurred_on" type="date" defaultValue={t.occurred_on}
+                          className="rounded-lg border p-2 text-sm" />
+                        <select name="account_id" defaultValue={t.account_id ?? ""}
+                          className="rounded-lg border p-2 text-sm">
+                          <option value="">— no account —</option>
+                          {accounts.map((a) => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">
+                        Save changes
+                      </SubmitButton>
+                    </form>
                   )}
-                  <form action={deleteTransaction}>
+                  <form action={deleteTransaction} className="mt-2">
                     <input type="hidden" name="id" value={t.id} />
-                    <SubmitButton pendingLabel="…" className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600">
-                      ✕
+                    <SubmitButton pendingLabel="…" className="w-full rounded-lg border border-red-200 p-2 text-xs text-red-600">
+                      Delete (restorable below for 7 days)
                     </SubmitButton>
                   </form>
                 </div>
-              </div>
+              </details>
             );
           })}
         </section>

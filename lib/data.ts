@@ -115,13 +115,13 @@ export const computePlan = cache(async () => {
 
 export type RecentTx = {
   id: string; amount: number; category: string | null; note: string | null;
-  occurred_on: string; accounts: { name: string } | null;
+  occurred_on: string; account_id: string | null; accounts: { name: string } | null;
 };
 
 export const getRecentTransactions = cache(async (limit = 10): Promise<RecentTx[]> => {
   const { data } = await db()
     .from("transactions")
-    .select("id, amount, category, note, occurred_on, accounts(name)")
+    .select("id, amount, category, note, occurred_on, account_id, accounts(name)")
     .is("deleted_at", null)
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false })

@@ -124,6 +124,38 @@ export async function deleteTransaction(form: FormData) {
   revalidatePath("/accounts");
 }
 
+// Edit a transaction. Sign is preserved from the original (spend stays spend);
+// balance effects are reversed on the old account and applied on the new one.
+// Transfers are excluded (paired rows — delete and re-add instead).
+export async function updateTransaction(form: FormData) {
+  const id = str(form.get("id"));
+  const rawAmount = Math.abs(num(form.get("amount")));
+  if (!id || rawAmount === 0) return;
+  const supabase = db();
+  const { data: old } = await supabase.from("transactions")
+    .select("amount, account_id, category, deleted_at").eq("id", id).single();
+  if (!old || old.deleted_at || old.category === "Transfer") return;
+
+  const sign = Number(old.amount) < 0 ? -1 : 1;
+  const newAmount = sign * rawAmount;
+  const newAccount = str(form.get("account_id")) || null;
+
+  await supabase.from("transactions").update({
+    amount: newAmount,
+    account_id: newAccount,
+    category: str(form.get("category")) || null,
+    note: str(form.get("note")) || null,
+    occurred_on: str(form.get("occurred_on")) || undefined,
+  }).eq("id", id);
+
+  // Rebalance: undo old effect, apply new (handles account changes too).
+  if (old.account_id) await bumpBalance(supabase, old.account_id, -Number(old.amount));
+  if (newAccount) await bumpBalance(supabase, newAccount, newAmount);
+
+  revalidatePath("/");
+  revalidatePath("/accounts");
+}
+
 // Undo: bring a soft-deleted transaction back and re-apply its balance effect.
 export async function restoreTransaction(form: FormData) {
   const id = str(form.get("id"));
