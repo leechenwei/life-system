@@ -78,6 +78,7 @@ create table if not exists settings (
   id int primary key default 1,
   buffer_months int not null default 6,           -- your emergency-fund buffer, in months of spend
   default_monthly_spend numeric(12,2) not null default 2000,  -- fallback until enough real data
+  about_me text,                                  -- free-text profile the AI advisor reads
   check (id = 1)
 );
 insert into settings (id) values (1) on conflict (id) do nothing;

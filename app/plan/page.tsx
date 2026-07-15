@@ -123,6 +123,13 @@ export default async function PlanPage() {
             defaultValue={Number(settings.default_monthly_spend)}
             className="mt-1 w-full rounded-lg border p-2" />
         </label>
+        <label className="text-sm">
+          About you — the AI Advisor reads this for personalized advice
+          <textarea name="about_me" rows={3}
+            defaultValue={settings.about_me ?? ""}
+            placeholder="e.g. 24, software engineer in KL, RM3.5k/mo from own SSM business, girlfriend, planning Japan trip Apr 2027, saving for car loan eligibility"
+            className="mt-1 w-full rounded-lg border p-2 text-sm" />
+        </label>
         <SubmitButton className="rounded-lg bg-black p-2 text-sm text-white">Save</SubmitButton>
       </form>
 

@@ -1,7 +1,8 @@
-import { getAccounts, getGoals, getInvestments, getTxStats, computePlan, money } from "./data";
+import { getAccounts, getGoals, getInvestments, getTxStats, getSettings, computePlan, money } from "./data";
 import { geminiGenerate } from "./gemini";
 
 export type Snapshot = {
+  aboutMe: string | null;
   netWorth: number;
   month: { spend: number; income: number; net: number };
   plan: Awaited<ReturnType<typeof computePlan>>;
@@ -11,10 +12,11 @@ export type Snapshot = {
 };
 
 export async function buildSnapshot(): Promise<Snapshot> {
-  const [accounts, investments, goals, stats, plan] = await Promise.all([
-    getAccounts(), getInvestments(), getGoals(), getTxStats(), computePlan(),
+  const [accounts, investments, goals, stats, plan, settings] = await Promise.all([
+    getAccounts(), getInvestments(), getGoals(), getTxStats(), computePlan(), getSettings(),
   ]);
   return {
+    aboutMe: settings.about_me,
     netWorth: accounts.reduce((s, a) => s + Number(a.balance), 0),
     month: stats.month,
     plan,
@@ -37,6 +39,7 @@ export function buildPrompt(s: Snapshot, question: string): string {
     "Give specific, encouraging, concise advice (max ~180 words). Amounts are in MYR (RM).",
     "Do not repeat all the numbers back; focus on 2-4 concrete next actions.",
     "",
+    ...(s.aboutMe ? ["ABOUT THEM (their own words):", s.aboutMe, ""] : []),
     "THEIR CURRENT SNAPSHOT:",
     `- Net worth: ${money(s.netWorth)}`,
     `- This month: spent ${money(s.month.spend)}, earned ${money(s.month.income)} (net ${money(s.month.net)})`,

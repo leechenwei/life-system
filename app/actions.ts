@@ -253,6 +253,7 @@ export async function saveSettings(form: FormData) {
   await db().from("settings").update({
     buffer_months: Math.max(1, Math.round(num(form.get("buffer_months")))),
     default_monthly_spend: num(form.get("default_monthly_spend")),
+    about_me: str(form.get("about_me")) || null,
   }).eq("id", 1);
   revalidatePath("/plan");
 }

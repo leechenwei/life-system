@@ -48,7 +48,7 @@ export const getUpcomingReminders = cache(async (days = 60): Promise<Reminder[]>
 
 export const getSettings = cache(async () => {
   const { data } = await db().from("settings").select("*").eq("id", 1).single();
-  return data as { buffer_months: number; default_monthly_spend: number };
+  return data as { buffer_months: number; default_monthly_spend: number; about_me: string | null };
 });
 
 // ONE transaction query (last 90 days) feeds both this-month totals and avg spend.
@@ -126,6 +126,22 @@ export const getRecentTransactions = cache(async (limit = 10): Promise<RecentTx[
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
+  return (data ?? []) as unknown as RecentTx[];
+});
+
+// Full month of transactions for /history (ym = "2026-07").
+export const getTransactionsForMonth = cache(async (ym: string): Promise<RecentTx[]> => {
+  const [y, m] = [Number(ym.slice(0, 4)), Number(ym.slice(5, 7))];
+  const first = `${ym}-01`;
+  const next = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+  const { data } = await db()
+    .from("transactions")
+    .select("id, amount, category, note, occurred_on, account_id, accounts(name)")
+    .is("deleted_at", null)
+    .gte("occurred_on", first)
+    .lt("occurred_on", next)
+    .order("occurred_on", { ascending: false })
+    .order("created_at", { ascending: false });
   return (data ?? []) as unknown as RecentTx[];
 });
 
