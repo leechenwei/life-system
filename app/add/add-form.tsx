@@ -78,27 +78,52 @@ export default function AddForm({
       </label>
       {scanMsg && <p className="text-xs text-neutral-500">{scanMsg}</p>}
 
-      <div className="flex flex-col gap-1">
-        <input
-          name="amount" type="text" inputMode="decimal" placeholder="0.00  (or 12+7.50-3)"
-          required value={amount} onChange={(e) => setAmount(e.target.value)}
-          className="rounded-xl border p-4 text-2xl"
-        />
-        <div className="flex items-center gap-2">
-          {/* Operator chips — the iPhone decimal keypad has no + − × ÷ */}
-          {["+", "−", "×", "÷"].map((op) => (
-            <button key={op} type="button"
-              onClick={() => setAmount((a) => a + (op === "−" ? "-" : op))}
-              className="h-8 w-10 rounded-lg border text-base text-neutral-600 active:scale-95">
-              {op}
-            </button>
-          ))}
+      <div className="flex flex-col gap-2">
+        {/* inputMode="none": our keypad below replaces the iOS keyboard
+            (hardware keyboards still type into it on desktop) */}
+        <div className="relative">
+          <input
+            name="amount" type="text" inputMode="none" placeholder="0.00"
+            required value={amount} onChange={(e) => setAmount(e.target.value)}
+            className="w-full rounded-xl border p-4 pr-24 text-2xl"
+          />
           {hasExpr && (
-            <span className={`ml-auto text-sm font-medium ${Number.isFinite(evaluated) ? "text-neutral-600" : "text-red-500"}`}>
-              {Number.isFinite(evaluated) ? `= RM ${evaluated.toFixed(2)}` : "…"}
+            <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium ${Number.isFinite(evaluated) ? "text-neutral-500" : "text-red-500"}`}>
+              {Number.isFinite(evaluated) ? `= ${evaluated.toFixed(2)}` : "…"}
             </span>
           )}
         </div>
+
+        {/* Calculator keypad */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {[
+            ["7", "7"], ["8", "8"], ["9", "9"], ["÷", "/"],
+            ["4", "4"], ["5", "5"], ["6", "6"], ["×", "*"],
+            ["1", "1"], ["2", "2"], ["3", "3"], ["−", "-"],
+            [".", "."], ["0", "0"], ["⌫", "BS"], ["+", "+"],
+          ].map(([label, key]) => {
+            const isOp = ["/", "*", "-", "+", "BS"].includes(key);
+            return (
+              <button
+                key={key} type="button"
+                onClick={() =>
+                  setAmount((a) => (key === "BS" ? a.slice(0, -1) : a + key))
+                }
+                className={`h-12 rounded-xl border text-xl transition-transform active:scale-95 ${
+                  isOp ? "bg-neutral-100 text-neutral-600" : "bg-white font-medium"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {amount && (
+          <button type="button" onClick={() => setAmount("")}
+            className="self-end text-xs text-neutral-400 underline">
+            clear
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
