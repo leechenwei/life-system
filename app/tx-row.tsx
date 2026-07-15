@@ -5,12 +5,17 @@ import ReceiptField from "./receipt-field";
 
 // One editable transaction row (used by Home Recent and /history).
 export default function TxRow({
-  t, accounts, receiptUrl,
+  t, accounts, categories = [], receiptUrl,
 }: {
   t: RecentTx;
   accounts: Pick<Account, "id" | "name">[];
+  categories?: string[];
   receiptUrl?: string;
 }) {
+  // Current value always selectable even if it's not in the used list.
+  const catOptions = t.category && !categories.some((c) => c.toLowerCase() === t.category!.toLowerCase())
+    ? [t.category, ...categories]
+    : categories;
   const amt = Number(t.amount);
   const isTransfer = t.category === "Transfer";
   return (
@@ -49,8 +54,11 @@ export default function TxRow({
             <div className="grid grid-cols-2 gap-2">
               <input name="amount" type="number" step="0.01" inputMode="decimal"
                 defaultValue={Math.abs(amt)} required className="rounded-lg border p-2 text-sm" />
-              <input name="category" defaultValue={t.category ?? ""} placeholder="Category"
-                className="rounded-lg border p-2 text-sm" />
+              <select name="category" defaultValue={t.category ?? ""}
+                className="rounded-lg border p-2 text-sm">
+                <option value="">— category —</option>
+                {catOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <input name="note" defaultValue={t.note ?? ""} placeholder="Note"
               className="rounded-lg border p-2 text-sm" />

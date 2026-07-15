@@ -12,6 +12,11 @@ function num(v: FormDataEntryValue | null): number {
 function str(v: FormDataEntryValue | null): string {
   return (v ?? "").toString().trim();
 }
+// Normalize category casing so "food" and "Food" don't split the stats.
+function cat(v: FormDataEntryValue | null): string | null {
+  const s = str(v);
+  return s ? s[0].toUpperCase() + s.slice(1) : null;
+}
 
 // Adjust an account's balance by delta (read+write; fine for one user).
 async function bumpBalance(supabase: ReturnType<typeof db>, accountId: string, delta: number) {
@@ -50,7 +55,7 @@ export async function addTransaction(form: FormData) {
   const { data: tx } = await supabase.from("transactions").insert({
     amount,
     account_id,
-    category: str(form.get("category")) || null,
+    category: cat(form.get("category")),
     note: str(form.get("note")) || null,
     life_area: str(form.get("life_area")) || "money",
     occurred_on: str(form.get("occurred_on")) || new Date().toISOString().slice(0, 10),
@@ -143,7 +148,7 @@ export async function updateTransaction(form: FormData) {
   await supabase.from("transactions").update({
     amount: newAmount,
     account_id: newAccount,
-    category: str(form.get("category")) || null,
+    category: cat(form.get("category")),
     note: str(form.get("note")) || null,
     occurred_on: str(form.get("occurred_on")) || undefined,
   }).eq("id", id);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   getAccounts, getGoals, getTxStats, getUpcomingReminders, getRecentTransactions,
-  getRecentlyDeleted, getTxAttachments, computePlan, money,
+  getRecentlyDeleted, getTxAttachments, getUsedCategories, computePlan, money,
 } from "@/lib/data";
 import { completeReminder, restoreTransaction } from "./actions";
 import SubmitButton from "./submit-button";
@@ -14,7 +14,9 @@ export default async function Dashboard() {
     getAccounts(), getTxStats(), getGoals(), getUpcomingReminders(),
     getRecentTransactions(), getRecentlyDeleted(), computePlan(),
   ]);
-  const receipts = await getTxAttachments(recent.map((t) => t.id));
+  const [receipts, usedCategories] = await Promise.all([
+    getTxAttachments(recent.map((t) => t.id)), getUsedCategories(),
+  ]);
   const month = stats.month;
   const netWorth = accounts.reduce((s, a) => s + Number(a.balance), 0);
 
@@ -93,7 +95,7 @@ export default async function Dashboard() {
             <Link href="/history" className="text-xs text-neutral-500 underline">View all →</Link>
           </div>
           {recent.map((t) => (
-            <TxRow key={t.id} t={t} accounts={accounts} receiptUrl={receipts[t.id]} />
+            <TxRow key={t.id} t={t} accounts={accounts} categories={usedCategories} receiptUrl={receipts[t.id]} />
           ))}
         </section>
       )}

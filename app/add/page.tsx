@@ -1,4 +1,4 @@
-import { getAccounts } from "@/lib/data";
+import { getAccounts, getUsedCategories } from "@/lib/data";
 import { addTransaction } from "../actions";
 import { redirect } from "next/navigation";
 import AddForm from "./add-form";
@@ -6,7 +6,7 @@ import AddForm from "./add-form";
 export const dynamic = "force-dynamic";
 
 export default async function AddPage() {
-  const accounts = await getAccounts();
+  const [accounts, usedCategories] = await Promise.all([getAccounts(), getUsedCategories()]);
 
   async function submit(form: FormData) {
     "use server";
@@ -19,6 +19,7 @@ export default async function AddPage() {
       <h1 className="pt-2 text-xl font-semibold">Add transaction</h1>
       <AddForm
         accounts={accounts.map((a) => ({ id: a.id, name: a.name, type: a.type }))}
+        usedCategories={usedCategories}
         action={submit}
       />
     </main>

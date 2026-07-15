@@ -7,20 +7,28 @@ import { compressImage, swapInputFile } from "../compress";
 import { evalAmountExpr } from "@/lib/money";
 import type { Account } from "@/lib/data";
 
-const CATEGORIES = ["Food", "Transport", "Groceries", "Bills", "Shopping", "Health", "Fun", "Other"];
+const DEFAULT_CATEGORIES = ["Food", "Transport", "Groceries", "Bills", "Shopping", "Health", "Fun", "Other"];
 
 export default function AddForm({
   accounts,
+  usedCategories = [],
   action,
 }: {
   accounts: Pick<Account, "id" | "name" | "type">[];
+  usedCategories?: string[];
   action: (form: FormData) => Promise<void>;
 }) {
+  // Pick-don't-type: existing categories first, defaults fill the gaps.
+  const CATEGORIES = (() => {
+    const seen = new Set(usedCategories.map((c) => c.toLowerCase()));
+    return [...usedCategories, ...DEFAULT_CATEGORIES.filter((c) => !seen.has(c.toLowerCase()))];
+  })();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState("");
   const [kind, setKind] = useState<"spend" | "income" | "transfer">("spend");
+  const [newCat, setNewCat] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -158,16 +166,35 @@ export default function AddForm({
       )}
 
       {!isTransfer && (
-        <>
-          <input
-            name="category" list="cats" placeholder="Category"
-            value={category} onChange={(e) => setCategory(e.target.value)}
-            className="rounded-xl border p-3"
-          />
-          <datalist id="cats">
-            {CATEGORIES.map((c) => <option key={c} value={c} />)}
-          </datalist>
-        </>
+        <div className="flex flex-col gap-2">
+          <input type="hidden" name="category" value={category} />
+          <div className="flex flex-wrap gap-1.5">
+            {CATEGORIES.map((c) => {
+              const active = category.toLowerCase() === c.toLowerCase();
+              return (
+                <button key={c} type="button"
+                  onClick={() => { setCategory(active ? "" : c); setNewCat(false); }}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors active:scale-95 ${
+                    active ? "border-black bg-black text-white" : "border-neutral-300 text-neutral-600"
+                  }`}>
+                  {c}
+                </button>
+              );
+            })}
+            <button type="button"
+              onClick={() => { setNewCat(true); setCategory(""); }}
+              className={`rounded-full border border-dashed px-3 py-1.5 text-sm ${newCat ? "border-black" : "border-neutral-300 text-neutral-400"}`}>
+              ＋ New
+            </button>
+          </div>
+          {newCat && (
+            <input
+              autoFocus placeholder="New category name"
+              value={category} onChange={(e) => setCategory(e.target.value)}
+              className="rounded-xl border p-3"
+            />
+          )}
+        </div>
       )}
 
       <input

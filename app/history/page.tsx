@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAccounts, getTransactionsForMonth, getTxAttachments, money } from "@/lib/data";
+import { getAccounts, getTransactionsForMonth, getTxAttachments, getUsedCategories, money } from "@/lib/data";
 import TxRow from "../tx-row";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,9 @@ export default async function HistoryPage({
   const { month } = await searchParams;
   const ym = /^\d{4}-\d{2}$/.test(month ?? "") ? month! : new Date().toISOString().slice(0, 7);
   const [txs, accounts] = await Promise.all([getTransactionsForMonth(ym), getAccounts()]);
-  const receipts = await getTxAttachments(txs.map((t) => t.id));
+  const [receipts, usedCategories] = await Promise.all([
+    getTxAttachments(txs.map((t) => t.id)), getUsedCategories(),
+  ]);
 
   let spend = 0, income = 0;
   for (const t of txs) {
@@ -49,7 +51,7 @@ export default async function HistoryPage({
       )}
       <div className="flex flex-col gap-2">
         {txs.map((t) => (
-          <TxRow key={t.id} t={t} accounts={accounts} receiptUrl={receipts[t.id]} />
+          <TxRow key={t.id} t={t} accounts={accounts} categories={usedCategories} receiptUrl={receipts[t.id]} />
         ))}
       </div>
       <p className="text-xs text-neutral-400">{txs.length} records · transfers excluded from totals.</p>

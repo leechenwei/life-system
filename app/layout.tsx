@@ -15,6 +15,10 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
+  // Zoom locked: iOS lets position:fixed (our bottom nav) drift off-screen
+  // when pinch-zoomed. App-like PWAs (banking, TnG) all do this.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 

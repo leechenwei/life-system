@@ -158,6 +158,22 @@ export const getRecentlyDeleted = cache(async (limit = 5): Promise<RecentTx[]> =
   return (data ?? []) as unknown as RecentTx[];
 });
 
+// Distinct categories already used (excl. Transfer), for pick-don't-type UIs.
+export const getUsedCategories = cache(async (): Promise<string[]> => {
+  const { data } = await db()
+    .from("transactions")
+    .select("category")
+    .not("category", "is", null)
+    .neq("category", "Transfer")
+    .is("deleted_at", null);
+  const seen = new Map<string, string>(); // lowercased -> first-seen casing
+  for (const r of data ?? []) {
+    const c = (r.category as string).trim();
+    if (c && !seen.has(c.toLowerCase())) seen.set(c.toLowerCase(), c);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+});
+
 export function money(n: number, currency = "MYR") {
   return new Intl.NumberFormat("en-MY", { style: "currency", currency }).format(n);
 }
