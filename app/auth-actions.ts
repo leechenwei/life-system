@@ -73,9 +73,3 @@ export async function passkeyLoginVerify(response: AuthenticationResponseJSON) {
 export async function hasPasskeys(): Promise<boolean> {
   return (await listPasskeys()).length > 0;
 }
-
-// --- manual lock (header button) ---
-export async function lockNow() {
-  (await cookies()).delete("ls_auth");
-  redirect("/login");
-}

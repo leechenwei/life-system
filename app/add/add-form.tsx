@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { scanReceipt } from "../actions";
 import SubmitButton from "../submit-button";
 import { compressImage, swapInputFile } from "../compress";
+import { evalAmountExpr } from "@/lib/money";
 import type { Account } from "@/lib/data";
 
 const CATEGORIES = ["Food", "Transport", "Groceries", "Bills", "Shopping", "Health", "Fun", "Other"];
@@ -46,8 +47,18 @@ export default function AddForm({
     setScanMsg(r.amount ? "✓ Scanned — check the details, then Save." : "Couldn't read it confidently — fill in manually.");
   }
 
+  // Calculator support: "12+7.5-3" in the amount field evaluates on Save.
+  const hasExpr = /[+\-×÷*/]/.test(amount.slice(1)); // slice: leading '-' alone isn't an expression
+  const evaluated = hasExpr ? evalAmountExpr(amount) : NaN;
+
+  async function submit(fd: FormData) {
+    const v = evalAmountExpr(String(fd.get("amount") ?? ""));
+    if (Number.isFinite(v) && v > 0) fd.set("amount", String(v));
+    await action(fd);
+  }
+
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={submit} className="flex flex-col gap-3">
       {/* Scan receipt: photo/library -> Gemini vision -> prefill. The same file
           is submitted with the form and stored linked to the transaction. */}
       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-neutral-600 active:scale-[0.98]">
@@ -67,11 +78,28 @@ export default function AddForm({
       </label>
       {scanMsg && <p className="text-xs text-neutral-500">{scanMsg}</p>}
 
-      <input
-        name="amount" type="number" step="0.01" inputMode="decimal" placeholder="0.00"
-        required value={amount} onChange={(e) => setAmount(e.target.value)}
-        className="rounded-xl border p-4 text-2xl"
-      />
+      <div className="flex flex-col gap-1">
+        <input
+          name="amount" type="text" inputMode="decimal" placeholder="0.00  (or 12+7.50-3)"
+          required value={amount} onChange={(e) => setAmount(e.target.value)}
+          className="rounded-xl border p-4 text-2xl"
+        />
+        <div className="flex items-center gap-2">
+          {/* Operator chips — the iPhone decimal keypad has no + − × ÷ */}
+          {["+", "−", "×", "÷"].map((op) => (
+            <button key={op} type="button"
+              onClick={() => setAmount((a) => a + (op === "−" ? "-" : op))}
+              className="h-8 w-10 rounded-lg border text-base text-neutral-600 active:scale-95">
+              {op}
+            </button>
+          ))}
+          {hasExpr && (
+            <span className={`ml-auto text-sm font-medium ${Number.isFinite(evaluated) ? "text-neutral-600" : "text-red-500"}`}>
+              {Number.isFinite(evaluated) ? `= RM ${evaluated.toFixed(2)}` : "…"}
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         <label className="flex cursor-pointer items-center justify-center rounded-xl border p-3 text-sm has-checked:border-red-400 has-checked:bg-red-50">

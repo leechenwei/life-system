@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Nav from "./nav";
 import PrivacyShield from "./privacy-shield";
-import { lockNow } from "./auth-actions";
 
 export const metadata: Metadata = {
   title: "Life System",
@@ -29,11 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="inline-block h-6 w-6 rounded-md bg-black" />
             <span className="flex-1 text-sm font-semibold tracking-tight">Life System</span>
             {/* Lock instantly, e.g. before handing your phone to someone */}
-            <form action={lockNow}>
-              <button className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600">
-                🔒 Lock
-              </button>
-            </form>
+            <a href="/lock" className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600">
+              🔒 Lock
+            </a>
           </header>
           {children}
         </div>

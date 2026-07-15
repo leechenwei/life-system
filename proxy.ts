@@ -28,6 +28,6 @@ export function proxy(req: NextRequest) {
 // merely contains a dot is still gated — avoids an allowlist-bypass auth hole).
 export const config = {
   matcher: [
-    "/((?!login|_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webmanifest|txt|xml)$).*)",
+    "/((?!login|lock|_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webmanifest|txt|xml)$).*)",
   ],
 };

@@ -6,6 +6,55 @@ export function signedAmount(kind: string, raw: number): number {
   return kind === "income" ? a : -a;
 }
 
+// Evaluate a simple money expression ("12+7.5-3", "45/2") -> positive 2dp
+// number, or NaN if it isn't clean arithmetic. Hand-rolled recursive-descent
+// parser (+ - * / parentheses decimals only) — no eval/Function, so nothing
+// but arithmetic can ever run. × and ÷ accepted as aliases.
+export function evalAmountExpr(raw: string): number {
+  const s = raw.replace(/×/g, "*").replace(/÷/g, "/").replace(/,/g, "").replace(/\s+/g, "");
+  if (!s) return NaN;
+  let i = 0;
+  const peek = () => s[i];
+  const fail = { failed: false };
+
+  function expr(): number {          // term (('+'|'-') term)*
+    let v = term();
+    while (peek() === "+" || peek() === "-") {
+      const op = s[i++];
+      const r = term();
+      v = op === "+" ? v + r : v - r;
+    }
+    return v;
+  }
+  function term(): number {          // factor (('*'|'/') factor)*
+    let v = factor();
+    while (peek() === "*" || peek() === "/") {
+      const op = s[i++];
+      const r = factor();
+      v = op === "*" ? v * r : v / r;
+    }
+    return v;
+  }
+  function factor(): number {        // '-' factor | '(' expr ')' | number
+    if (peek() === "-") { i++; return -factor(); }
+    if (peek() === "(") {
+      i++;
+      const v = expr();
+      if (peek() !== ")") { fail.failed = true; return NaN; }
+      i++;
+      return v;
+    }
+    const m = /^\d+(\.\d+)?|^\.\d+/.exec(s.slice(i));
+    if (!m) { fail.failed = true; return NaN; }
+    i += m[0].length;
+    return Number(m[0]);
+  }
+
+  const v = expr();
+  if (fail.failed || i !== s.length || !isFinite(v)) return NaN;
+  return Math.round(Math.abs(v) * 100) / 100;
+}
+
 export type TxRow = { amount: number | string; occurred_on: string; category?: string | null };
 
 // Transfers move money between your own accounts — never spend or income.

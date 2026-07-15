@@ -1,6 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { signedAmount, planMath, reduceTxStats, aggregateAnalytics } from "./money.ts";
+import { signedAmount, planMath, reduceTxStats, aggregateAnalytics, evalAmountExpr } from "./money.ts";
+
+test("evalAmountExpr: arithmetic, aliases, junk rejection", () => {
+  assert.equal(evalAmountExpr("12+7.5"), 19.5);
+  assert.equal(evalAmountExpr("10*3-5"), 25);
+  assert.equal(evalAmountExpr("45/2"), 22.5);
+  assert.equal(evalAmountExpr("(4+6)×1.5"), 15);       // alias ×
+  assert.equal(evalAmountExpr("30.65"), 30.65);        // plain number passes through
+  assert.equal(evalAmountExpr("1,200+50"), 1250);      // commas stripped
+  assert.equal(evalAmountExpr("-20+5"), 15);           // result forced positive (abs)
+  assert.equal(evalAmountExpr("10/3"), 3.33);          // rounded to 2dp
+  assert.ok(Number.isNaN(evalAmountExpr("")));
+  assert.ok(Number.isNaN(evalAmountExpr("abc")));
+  assert.ok(Number.isNaN(evalAmountExpr("1+alert(1)")));
+  assert.ok(Number.isNaN(evalAmountExpr("(1+2")));     // unbalanced paren
+  assert.ok(Number.isNaN(evalAmountExpr("1++")));      // dangling operator
+});
 import { parseReceiptReply } from "./receipt.ts";
 
 test("spend is negative, income is positive, sign of input ignored", () => {
