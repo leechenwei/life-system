@@ -34,6 +34,9 @@ export default function AddForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const isTransfer = kind === "transfer";
 
+  // wantScan decides the mode for the NEXT file pick: OCR-prefill or attach-only.
+  const wantScan = useRef(true);
+
   async function onReceiptPicked(file: File | undefined) {
     if (!file) return;
     setScanning(true);
@@ -43,6 +46,14 @@ export default function AddForm({
     // form submit stores the small version too.
     const small = await compressImage(file);
     if (fileRef.current) swapInputFile(fileRef.current, small);
+
+    if (!wantScan.current) {
+      // Attach-only: no AI call — the photo just gets saved with the record.
+      setScanning(false);
+      setScanMsg(`📎 Photo attached (${Math.round(small.size / 1024)} KB) — will save with this record.`);
+      return;
+    }
+
     const fd = new FormData();
     fd.set("receipt", small);
     const r = await scanReceipt(fd);
@@ -53,6 +64,11 @@ export default function AddForm({
     if (r.category) setCategory(r.category);
     if (r.date) setDate(r.date);
     setScanMsg(r.amount ? "✓ Scanned — check the details, then Save." : "Couldn't read it confidently — fill in manually.");
+  }
+
+  function pickFile(scan: boolean) {
+    wantScan.current = scan;
+    fileRef.current?.click();
   }
 
   // Calculator support: "12+7.5-3" in the amount field evaluates on Save.
@@ -67,23 +83,32 @@ export default function AddForm({
 
   return (
     <form action={submit} className="flex flex-col gap-3">
-      {/* Scan receipt: photo/library -> Gemini vision -> prefill. The same file
-          is submitted with the form and stored linked to the transaction. */}
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-neutral-600 active:scale-[0.98]">
-        {scanning ? (
-          <><span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" /> Reading receipt…</>
-        ) : (
-          <>📎 Attach receipt / proof (auto-reads the details)</>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          name="receipt"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => onReceiptPicked(e.target.files?.[0])}
-        />
-      </label>
+      {/* One hidden file input, two entry points: OCR-prefill or attach-only
+          (e.g. a food photo). Either way the file submits with the form. */}
+      <input
+        ref={fileRef}
+        type="file"
+        name="receipt"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => onReceiptPicked(e.target.files?.[0])}
+      />
+      {scanning ? (
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-neutral-600">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-400 border-t-transparent" /> Working…
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => pickFile(true)}
+            className="rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-neutral-600 active:scale-[0.98]">
+            🔍 Scan receipt<span className="block text-xs text-neutral-400">auto-fills details</span>
+          </button>
+          <button type="button" onClick={() => pickFile(false)}
+            className="rounded-xl border border-dashed border-neutral-400 p-3 text-sm text-neutral-600 active:scale-[0.98]">
+            📎 Photo only<span className="block text-xs text-neutral-400">just attach, no reading</span>
+          </button>
+        </div>
+      )}
       {scanMsg && <p className="text-xs text-neutral-500">{scanMsg}</p>}
 
       <div className="flex flex-col gap-2">
