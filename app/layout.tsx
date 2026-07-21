@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Nav from "./nav";
 import PrivacyShield from "./privacy-shield";
+import PrivacyToggle from "./privacy-toggle";
 
 export const metadata: Metadata = {
   title: "Life System",
@@ -25,12 +26,21 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">
+      <head>
+        {/* No-flash: apply the hide-amounts preference before first paint. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{document.documentElement.dataset.hideAmounts=localStorage.getItem('hideAmounts')==='1'?'1':'0'}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full bg-neutral-50 text-neutral-900">
         <PrivacyShield />
         <div className="mx-auto min-h-screen max-w-md bg-neutral-50 pb-24">
           <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-neutral-50/90 px-4 py-3 backdrop-blur pt-[max(0.75rem,env(safe-area-inset-top))]">
             <span className="inline-block h-6 w-6 rounded-md bg-black" />
             <span className="flex-1 text-sm font-semibold tracking-tight">Life System</span>
+            <PrivacyToggle />
             {/* Lock instantly, e.g. before handing your phone to someone */}
             <a href="/lock" className="rounded-lg border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600">
               🔒 Lock

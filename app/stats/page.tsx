@@ -1,4 +1,5 @@
 import { getAnalytics, getTxStats, money } from "@/lib/data";
+import { Amount } from "../amount";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,7 @@ function CategoryBars({ categories }: { categories: { category: string; total: n
               title={`${c.category}: ${money(c.total)}`}
             />
           </div>
-          <span className="w-16 text-right text-xs font-medium tabular-nums">{money(c.total)}</span>
+          <span className="w-16 text-right text-xs font-medium tabular-nums"><Amount>{money(c.total)}</Amount></span>
         </div>
       ))}
       {top.length === 0 && <p className="text-sm text-neutral-500">No spending recorded this month yet.</p>}
@@ -89,9 +90,9 @@ export default async function StatsPage() {
 
       {/* KPI row */}
       <section className="grid grid-cols-2 gap-3">
-        <Tile label="Spent this month" value={money(stats.month.spend)} />
-        <Tile label="Daily average" value={money(dailyAvg)} />
-        <Tile label="Net this month" value={money(stats.month.net)} tone={stats.month.net >= 0 ? "text-green-600" : "text-red-600"} />
+        <Tile label="Spent this month" value={money(stats.month.spend)} amount />
+        <Tile label="Daily average" value={money(dailyAvg)} amount />
+        <Tile label="Net this month" value={money(stats.month.net)} amount tone={stats.month.net >= 0 ? "text-green-600" : "text-red-600"} />
         <Tile label="Top category" value={topCat ? topCat.category : "—"} sub={topCat ? money(topCat.total) : undefined} />
       </section>
 
@@ -117,12 +118,14 @@ export default async function StatsPage() {
   );
 }
 
-function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
+function Tile({ label, value, sub, tone, amount }: { label: string; value: string; sub?: string; tone?: string; amount?: boolean }) {
   return (
     <div className="rounded-xl border bg-white p-4">
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className={`truncate text-lg font-semibold ${tone ?? ""}`}>{value}</p>
-      {sub && <p className="text-xs text-neutral-500">{sub}</p>}
+      <p className={`truncate text-lg font-semibold ${tone ?? ""}`}>
+        {amount ? <Amount>{value}</Amount> : value}
+      </p>
+      {sub && <p className="text-xs text-neutral-500"><Amount>{sub}</Amount></p>}
     </div>
   );
 }

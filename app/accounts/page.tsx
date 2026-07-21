@@ -1,6 +1,7 @@
 import { getAccounts, getInvestments, money } from "@/lib/data";
 import { addAccount, updateAccount, deleteAccount } from "../actions";
 import SubmitButton from "../submit-button";
+import { Amount } from "../amount";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function AccountsPage() {
                 <span className="text-sm font-medium">{a.name}</span>
                 <span className="ml-2 text-xs text-neutral-500">{a.type}</span>
               </span>
-              <span className="text-sm font-semibold">{money(Number(a.balance))}</span>
+              <span className="text-sm font-semibold"><Amount>{money(Number(a.balance))}</Amount></span>
             </summary>
             <div className="border-t p-3">
               <form action={updateAccount} className="flex flex-col gap-2">
@@ -84,9 +85,9 @@ export default async function AccountsPage() {
             <div key={inv.id} className="flex justify-between rounded-xl border bg-white p-3 text-sm">
               <span className="font-medium">{inv.name}</span>
               <span>
-                {money(Number(inv.current_value))}{" "}
+                <Amount>{money(Number(inv.current_value))}</Amount>{" "}
                 <span className={gain >= 0 ? "text-green-600" : "text-red-600"}>
-                  ({gain >= 0 ? "+" : ""}{money(gain)})
+                  (<Amount>{`${gain >= 0 ? "+" : ""}${money(gain)}`}</Amount>)
                 </span>
               </span>
             </div>

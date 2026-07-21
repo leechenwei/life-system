@@ -6,6 +6,7 @@ import {
 import { completeReminder, restoreTransaction } from "./actions";
 import SubmitButton from "./submit-button";
 import TxRow from "./tx-row";
+import { Amount } from "./amount";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function Dashboard() {
     <main className="flex flex-col gap-5 p-4">
       <header className="pt-2">
         <p className="text-sm text-neutral-500">Net worth</p>
-        <p className="text-3xl font-semibold">{money(netWorth)}</p>
+        <p className="text-3xl font-semibold"><Amount>{money(netWorth)}</Amount></p>
       </header>
 
       <section className="grid grid-cols-2 gap-3">
@@ -55,7 +56,7 @@ export default async function Dashboard() {
                 <div className="flex justify-between text-sm">
                   <span className="font-medium">{g.name}</span>
                   <span className="text-neutral-500">
-                    {money(g.saved_amount)} / {money(g.target_amount)}
+                    <Amount>{money(g.saved_amount)}</Amount> / <Amount>{money(g.target_amount)}</Amount>
                   </span>
                 </div>
                 <div className="mt-2 h-2 rounded-full bg-neutral-100">
@@ -141,7 +142,7 @@ function Card({ label, value, tone }: { label: string; value: string; tone?: str
   return (
     <div className="rounded-xl border bg-white p-4">
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className={`text-lg font-semibold ${tone ?? ""}`}>{value}</p>
+      <p className={`text-lg font-semibold ${tone ?? ""}`}><Amount>{value}</Amount></p>
     </div>
   );
 }

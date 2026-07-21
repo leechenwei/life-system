@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAccounts, getTransactionsForMonth, getTxAttachments, getUsedCategories, money } from "@/lib/data";
 import TxRow from "../tx-row";
+import { Amount } from "../amount";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +40,9 @@ export default async function HistoryPage({
       </div>
 
       <div className="flex justify-around rounded-xl border bg-white p-3 text-sm">
-        <span>Spent <b className="text-red-600">{money(spend)}</b></span>
-        <span>Income <b className="text-green-600">{money(income)}</b></span>
-        <span>Net <b className={income - spend >= 0 ? "text-green-600" : "text-red-600"}>{money(income - spend)}</b></span>
+        <span>Spent <b className="text-red-600"><Amount>{money(spend)}</Amount></b></span>
+        <span>Income <b className="text-green-600"><Amount>{money(income)}</Amount></b></span>
+        <span>Net <b className={income - spend >= 0 ? "text-green-600" : "text-red-600"}><Amount>{money(income - spend)}</Amount></b></span>
       </div>
 
       {txs.length === 0 && (

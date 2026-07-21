@@ -3,6 +3,7 @@ import { saveSettings, addGoal, updateGoal, deleteGoal } from "../actions";
 import { hasPasskeys } from "../auth-actions";
 import SubmitButton from "../submit-button";
 import EnableFaceId from "./enable-faceid";
+import { Amount } from "../amount";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function PlanPage() {
       <section className="rounded-xl border bg-white p-4">
         <p className="text-sm text-neutral-500">Emergency buffer</p>
         <p className="text-2xl font-semibold">
-          {money(plan.emergencyFund)} <span className="text-base text-neutral-400">/ {money(plan.target)}</span>
+          <Amount>{money(plan.emergencyFund)}</Amount> <span className="text-base text-neutral-400">/ <Amount>{money(plan.target)}</Amount></span>
         </p>
         <div className="mt-3 h-2 rounded-full bg-neutral-100">
           <div className={`h-2 rounded-full ${plan.safe ? "bg-green-500" : "bg-black"}`} style={{ width: `${pct}%` }} />
@@ -57,7 +58,7 @@ export default async function PlanPage() {
                 <div className="flex justify-between text-sm">
                   <span className="font-medium">{g.name}</span>
                   <span className="text-neutral-500">
-                    {money(Number(g.saved_amount))} / {money(Number(g.target_amount))}
+                    <Amount>{money(Number(g.saved_amount))}</Amount> / <Amount>{money(Number(g.target_amount))}</Amount>
                     {g.target_date ? ` · by ${g.target_date}` : ""}
                   </span>
                 </div>

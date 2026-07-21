@@ -19,3 +19,11 @@ a, button {
 a:active {
   opacity: 0.6;
 }
+
+/* Privacy: blur every .amount when the eye toggle is off (TnG-style). */
+[data-hide-amounts="1"] .amount {
+  filter: blur(8px);
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}

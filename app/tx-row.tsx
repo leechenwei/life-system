@@ -2,6 +2,7 @@ import { money, type Account, type RecentTx } from "@/lib/data";
 import { deleteTransaction, updateTransaction } from "./actions";
 import SubmitButton from "./submit-button";
 import ReceiptField from "./receipt-field";
+import { Amount } from "./amount";
 
 // One editable transaction row (used by Home Recent and /history).
 export default function TxRow({
@@ -33,7 +34,7 @@ export default function TxRow({
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-sm font-semibold ${isTransfer ? "text-neutral-500" : amt < 0 ? "text-red-600" : "text-green-600"}`}>
-            {amt < 0 ? "−" : "+"}{money(Math.abs(amt))}
+            {amt < 0 ? "−" : "+"}<Amount>{money(Math.abs(amt))}</Amount>
           </span>
           {receiptUrl && (
             <a href={receiptUrl} target="_blank" rel="noreferrer"
